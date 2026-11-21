@@ -13,7 +13,9 @@ Rebuilding a flat's smart home on Home Assistant (HA Green) with a liquid-glass,
 - `ha/packages/`: helpers for vacation mode and Roborock room cleaning, scenes, plus ready-to-install automations (`automations.yaml`, `vacation_automations.yaml`).
 - `automations.md`: catalogue of every automation (ready, next round, needs new devices) with test steps.
 
-Coming next: `gaps.md`, `3d-plan.md`.
+- `gaps.md`: what the flat can't sense or control yet, ranked, with recommended devices and the automations they unlock.
+
+Coming next: `3d-plan.md`.
 
 ## Versions
 Each published dashboard version is tagged (`v0.3.0`, `v0.4.0`, …). See the GitHub releases/tags for the changelog.

@@ -70,7 +70,7 @@ The packages load from `/config/packages/` (deploy.md Phase A7). After copying: 
 | **Echo follow-me announcements**: a script `announce_here(message)` used by every automation, picking the Echo in the occupied room. | Generalises #5. Worth doing once 3+ automations announce things. |
 | **TV off → lights restore**: when the TV turns off, bring back whatever the lights were before Movie mode. | Use `scene.create` snapshots; needs the TV integration to report reliably. |
 
-## Tier 3: needs new devices (see `gaps.md`)
+## Tier 3: needs new devices (see [`gaps.md`](gaps.md))
 - **Hallway night-path light**: the hallway has a motion sensor but **no light**.
 - **Bathroom**: humidity-triggered fan, a motion light, and a "shower running" warm-up. There's no bathroom light, fan or sensor yet.
 - **Leak alert** under the washing machine → shut off the washer and push.
