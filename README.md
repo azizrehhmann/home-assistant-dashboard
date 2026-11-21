@@ -13,6 +13,7 @@ Rebuilding a flat's smart home on Home Assistant (HA Green) with a liquid-glass,
 - `ha/packages/`: helpers for vacation mode and Roborock room cleaning, scenes, plus ready-to-install automations (`automations.yaml`, `vacation_automations.yaml`).
 - `automations.md`: catalogue of every automation (ready, next round, needs new devices) with test steps.
 
+- `tools/`: `ha.py` (send one websocket command to HA), `deploy_dashboard.py` (publish the dashboard, with placeholders for unpaired devices), `dirigera_pair.py` (pair with the IKEA hub API).
 - `gaps.md`: what the flat can't sense or control yet, ranked, with recommended devices and the automations they unlock.
 
 Coming next: `3d-plan.md`.

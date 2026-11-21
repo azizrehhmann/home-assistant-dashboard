@@ -10,8 +10,8 @@ input_boolean:
 input_select:
   robot_suction:
     name: Robot · suction
-    # Must match the vacuum's fan_speed_list attribute exactly (deploy.md C3).
-    options: [quiet, balanced, turbo, max, max_plus]
+    # Matches the vacuum's fan_speed_list attribute exactly.
+    options: [gentle, quiet, balanced, turbo, max, max_plus]
     initial: balanced
     icon: mdi:fan
 
@@ -30,14 +30,14 @@ script:
     alias: Robot · clean selected rooms
     icon: mdi:robot-vacuum
     variables:
-      # Replace with the segment IDs from roborock.get_maps (deploy.md C3).
+      # Room numbers from roborock.get_maps (read 2026-11-22); "Study" is the Studio.
       segment_ids:
-        living_room: 16
-        studio: 17
-        bedroom: 18
-        kitchen: 19
-        hallway: 20
-        bathroom: 21
+        studio: 16
+        bathroom: 17
+        hallway: 18
+        living_room: 19
+        kitchen: 20
+        bedroom: 22
       segments: >-
         {% set ns = namespace(s=[]) %}
         {% for room, seg in segment_ids.items() if is_state('input_boolean.robot_room_' ~ room, 'on') %}

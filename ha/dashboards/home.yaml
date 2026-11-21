@@ -115,7 +115,7 @@ views:
             entity: sensor.studio_illuminance
             name: Studio light level
           - type: tile
-            entity: sensor.air_quality_monitor_pm25
+            entity: sensor.air_quality_pm25
             name: Air quality
 
   # ---------------------------------------------------------------- ROOMS
@@ -163,11 +163,11 @@ views:
           - type: tile
             entity: binary_sensor.balcony_door
           - type: tile
-            entity: sensor.air_quality_monitor_pm25
+            entity: sensor.air_quality_pm25
           - type: tile
             entity: media_player.living_room_tv
           - type: tile
-            entity: event.living_room_scroll_wheel
+            entity: sensor.living_room_wheel_battery
       - type: grid
         cards:
           - type: heading
@@ -198,7 +198,7 @@ views:
           - type: tile
             entity: vacuum.roborock_q5_pro
           - type: tile
-            entity: event.studio_scroll_wheel
+            entity: sensor.studio_wheel_battery
       - type: grid
         cards:
           - type: heading
@@ -229,9 +229,9 @@ views:
           - type: tile
             entity: input_datetime.wake_time
           - type: tile
-            entity: event.bedroom_dual_button
+            entity: sensor.bedroom_button_battery
           - type: tile
-            entity: event.bedroom_scroll_wheel
+            entity: sensor.bedroom_wheel_battery
       - type: grid
         cards:
           - type: heading
@@ -292,14 +292,17 @@ views:
           - type: heading
             heading: Air quality (Living room)
           - type: tile
-            entity: sensor.air_quality_monitor_pm25
+            entity: sensor.air_quality_pm25
             name: PM2.5
           - type: tile
-            entity: sensor.air_quality_monitor_humidity
+            entity: sensor.air_quality_humidity
             name: Humidity
           - type: tile
-            entity: sensor.air_quality_monitor_temperature
+            entity: sensor.air_quality_temperature
             name: Temperature
+          - type: tile
+            entity: sensor.air_quality_co2
+            name: CO₂
 
   # ---------------------------------------------------------------- APPLIANCES
   - title: Appliances

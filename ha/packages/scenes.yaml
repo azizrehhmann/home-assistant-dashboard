@@ -46,4 +46,3 @@ script:
         target: {entity_id: all}
       - action: switch.turn_off
         target: {entity_id: switch.rice_cooker}
-      - action: script.robot_clean_selected_rooms
