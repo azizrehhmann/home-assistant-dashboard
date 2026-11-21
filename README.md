@@ -10,9 +10,10 @@ Rebuilding a flat's smart home on Home Assistant (HA Green) with a liquid-glass,
 - `deploy.md`: step-by-step checklist to get every device into Home Assistant (HA Green, 2026.11+), with sources.
 - `ha/themes/liquid_glass.yaml`: light/dark theme in the mock's colours (blur via card-mod).
 - `ha/dashboards/home.yaml`: sections dashboard (built-in cards only) mirroring the mock.
-- `ha/packages/`: helpers for vacation mode, Roborock room cleaning, plus the scenes.
+- `ha/packages/`: helpers for vacation mode and Roborock room cleaning, scenes, plus ready-to-install automations (`automations.yaml`, `vacation_automations.yaml`).
+- `automations.md`: catalogue of every automation (ready, next round, needs new devices) with test steps.
 
-Coming next: `automations.md`, `gaps.md`, `3d-plan.md`.
+Coming next: `gaps.md`, `3d-plan.md`.
 
 ## Versions
 Each published dashboard version is tagged (`v0.3.0`, `v0.4.0`, …). See the GitHub releases/tags for the changelog.

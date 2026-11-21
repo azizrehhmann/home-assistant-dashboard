@@ -223,6 +223,12 @@ views:
           - type: tile
             entity: climate.bedroom
           - type: tile
+            entity: input_boolean.wake_light_enabled
+            features_position: bottom
+            features: [{type: toggle}]
+          - type: tile
+            entity: input_datetime.wake_time
+          - type: tile
             entity: event.bedroom_dual_button
           - type: tile
             entity: event.bedroom_scroll_wheel

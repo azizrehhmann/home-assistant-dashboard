@@ -1,0 +1,280 @@
+# Everyday ("comfort") automations. Every one is skipped while vacation mode is on.
+# Replace notify.mobile_app_aziz_iphone and person.aziz with your own IDs (see automations.md).
+input_datetime:
+  wake_time:
+    name: Wake-up light time
+    has_date: false
+    has_time: true
+    initial: "07:00"
+
+input_boolean:
+  wake_light_enabled:
+    name: Wake-up light (weekdays)
+    icon: mdi:weather-sunset-up
+
+automation:
+  # 1 ── keeps tado's cloud under the free 100 calls/day (polling is off, deploy.md C1)
+  - id: tado_slow_refresh
+    alias: tado · refresh every 30 min
+    triggers:
+      - trigger: time_pattern
+        minutes: "/30"
+    actions:
+      - action: homeassistant.update_entity
+        target:
+          entity_id: [climate.living_room_tado, climate.studio_tado, climate.bedroom_tado, climate.bathroom_tado]
+
+  # 2 ── Studio: presence + light level
+  - id: studio_presence_on
+    alias: Studio · light on when someone is there and it's dark
+    triggers:
+      - trigger: state
+        entity_id: [binary_sensor.studio_presence_zone_1, binary_sensor.studio_presence_zone_2, binary_sensor.studio_presence_zone_3]
+        to: "on"
+    conditions:
+      - &not_vacation
+        condition: state
+        entity_id: input_boolean.vacation_mode
+        state: "off"
+    actions:
+      - condition: numeric_state
+        entity_id: sensor.studio_illuminance
+        below: 150
+      - condition: state
+        entity_id: light.studio_lamp
+        state: "off"
+      - action: light.turn_on
+        target: {entity_id: light.studio_lamp}
+        data:
+          brightness_pct: "{{ 80 if 7 <= now().hour < 19 else 50 }}"
+          color_temp_kelvin: "{{ 4000 if 7 <= now().hour < 17 else 3000 if now().hour < 21 else 2200 }}"
+          transition: 2
+
+  - id: studio_presence_off
+    alias: Studio · lights off when empty for 5 min
+    triggers:
+      - trigger: template
+        value_template: >-
+          {{ is_state('binary_sensor.studio_presence_zone_1','off') and is_state('binary_sensor.studio_presence_zone_2','off')
+             and is_state('binary_sensor.studio_presence_zone_3','off') }}
+        for: {minutes: 5}
+    conditions: [*not_vacation]
+    actions:
+      - action: light.turn_off
+        target: {entity_id: [light.studio_lamp, light.studio_light]}
+        data: {transition: 5}
+
+  # 3 ── Kitchen motion light, dimmer and warmer at night
+  - id: kitchen_motion_light
+    alias: Kitchen · motion light
+    mode: restart
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.kitchen_motion
+        to: "on"
+    conditions: [*not_vacation]
+    actions:
+      - action: light.turn_on
+        target: {entity_id: light.kitchen_ceiling}
+        data:
+          brightness_pct: "{{ 15 if now().hour >= 23 or now().hour < 6 else 100 }}"
+          color_temp_kelvin: "{{ 2200 if now().hour >= 22 or now().hour < 6 else 4000 }}"
+      - wait_for_trigger:
+          - trigger: state
+            entity_id: binary_sensor.kitchen_motion
+            to: "off"
+            for: {minutes: 3}
+      - action: light.turn_off
+        target: {entity_id: light.kitchen_ceiling}
+        data: {transition: 3}
+
+  # 4 ── Washer done → announce where you are + phone push
+  - id: washer_done_announce
+    alias: Washer · announce when finished
+    triggers:
+      - trigger: state
+        entity_id: event.washer_program_finished
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.from_state is not none and trigger.from_state.state not in ['unavailable','unknown'] }}"
+      - *not_vacation
+    actions:
+      - variables:
+          echo: >-
+            {% if is_state('binary_sensor.studio_presence_zone_1','on') or is_state('binary_sensor.studio_presence_zone_2','on') or is_state('binary_sensor.studio_presence_zone_3','on') %}notify.studio_echo_dot_announce
+            {% elif is_state('binary_sensor.kitchen_motion','on') %}notify.kitchen_echo_dot_announce
+            {% else %}notify.living_room_echo_dot_announce{% endif %}
+      - if:
+          - condition: state
+            entity_id: person.aziz
+            state: home
+          - condition: time
+            after: "08:00:00"
+            before: "22:00:00"
+        then:
+          - action: notify.send_message
+            target: {entity_id: "{{ echo | trim }}"}
+            data: {message: The washing machine has finished.}
+      - action: notify.mobile_app_aziz_iphone
+        data: {message: "🧺 Washing machine finished."}
+
+  # 5 ── Balcony door open → pause living-room heating
+  - id: balcony_door_heating
+    alias: Living room · heating off while balcony door is open
+    mode: restart
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.balcony_door
+        to: "on"
+        for: {minutes: 2}
+    conditions: [*not_vacation]
+    actions:
+      - action: climate.set_hvac_mode
+        target: {entity_id: climate.living_room}
+        data: {hvac_mode: "off"}
+      - wait_for_trigger:
+          - trigger: state
+            entity_id: binary_sensor.balcony_door
+            to: "off"
+      # back to the tado schedule (HomeKit "heat" would be a manual override)
+      - action: climate.set_hvac_mode
+        target: {entity_id: climate.living_room_tado}
+        data: {hvac_mode: auto}
+
+  # 6 ── Rice cooker safety timeout
+  - id: rice_cooker_timeout
+    alias: Kitchen · rice cooker off after 90 min
+    triggers:
+      - trigger: state
+        entity_id: switch.rice_cooker
+        to: "on"
+        for: {minutes: 90}
+    actions:
+      - action: switch.turn_off
+        target: {entity_id: switch.rice_cooker}
+      - action: notify.mobile_app_aziz_iphone
+        data: {message: "🍚 Rice cooker plug switched off after 90 minutes."}
+
+  # 7 ── Leaving and arriving (phone location via the Companion app)
+  - id: leave_home
+    alias: Presence · leaving home
+    triggers:
+      - trigger: state
+        entity_id: person.aziz
+        from: home
+        for: {minutes: 5}
+    conditions: [*not_vacation]
+    actions:
+      - action: light.turn_off
+        target: {entity_id: all}
+      - action: switch.turn_off
+        target: {entity_id: switch.rice_cooker}
+      - if:
+          - condition: state
+            entity_id: [binary_sensor.balcony_door, binary_sensor.main_door]
+            match: any
+            state: "on"
+        then:
+          - action: notify.mobile_app_aziz_iphone
+            data:
+              title: "🚪 A door is still open"
+              message: "{{ 'Balcony door' if is_state('binary_sensor.balcony_door','on') else 'Main door' }} is open."
+      - if:
+          - condition: state
+            entity_id: vacuum.roborock_q5_pro
+            state: docked
+          - condition: template
+            value_template: "{{ (now() - states.vacuum.roborock_q5_pro.last_changed).total_seconds() > 20 * 3600 }}"
+        then:
+          - action: script.robot_clean_selected_rooms
+
+  - id: arrive_home
+    alias: Presence · welcome home light
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.main_door
+        to: "on"
+    conditions:
+      - *not_vacation
+      - condition: state
+        entity_id: sun.sun
+        state: below_horizon
+      - condition: template
+        value_template: "{{ states('light') | selectattr('state','eq','on') | list | count == 0 }}"
+      - condition: template
+        value_template: "{{ (now() - states.person.aziz.last_changed).total_seconds() < 600 and is_state('person.aziz','home') }}"
+    actions:
+      - action: light.turn_on
+        target: {entity_id: [light.living_room_light_1, light.living_room_light_2]}
+        data: {brightness_pct: 70, color_temp_kelvin: 2700}
+      - if:
+          - condition: state
+            entity_id: vacuum.roborock_q5_pro
+            state: cleaning
+        then:
+          - action: vacuum.return_to_base
+            target: {entity_id: vacuum.roborock_q5_pro}
+
+  # 8 ── Weekday wake-up light (20-minute sunrise) + Echo briefing
+  - id: wake_up_light
+    alias: Bedroom · wake-up light
+    triggers:
+      - trigger: template
+        value_template: >-
+          {{ now().strftime('%H:%M') == (today_at(states('input_datetime.wake_time')) - timedelta(minutes=20)).strftime('%H:%M') }}
+    conditions:
+      - *not_vacation
+      - condition: state
+        entity_id: input_boolean.wake_light_enabled
+        state: "on"
+      - condition: time
+        weekday: [mon, tue, wed, thu, fri]
+      - condition: state
+        entity_id: person.aziz
+        state: home
+    actions:
+      - action: light.turn_on
+        target: {entity_id: light.bedside_lamp}
+        data: {brightness_pct: 1, color_temp_kelvin: 2200}
+      - action: light.turn_on
+        target: {entity_id: light.bedside_lamp}
+        data: {brightness_pct: 80, color_temp_kelvin: 3500, transition: 1200}
+      - delay: {minutes: 20}
+      - action: climate.set_temperature
+        target: {entity_id: climate.bathroom}
+        data: {temperature: 22}
+      - action: alexa_devices.send_text_command
+        data:
+          device_id: REPLACE_WITH_STUDIO_OR_BEDROOM_ECHO_DEVICE_ID
+          text_command: "good morning"
+
+  # 9 ── Movie mode when the TV turns on after dark
+  - id: tv_movie_mode
+    alias: Living room · movie mode when TV turns on
+    triggers:
+      - trigger: state
+        entity_id: media_player.living_room_tv
+        from: "off"
+        to: "on"
+    conditions:
+      - *not_vacation
+      - condition: state
+        entity_id: sun.sun
+        state: below_horizon
+    actions:
+      - action: scene.turn_on
+        target: {entity_id: scene.movie}
+        data: {transition: 3}
+
+  # 10 ── Air quality alert (once the IKEA monitor is back online)
+  - id: air_quality_alert
+    alias: Living room · poor air quality
+    triggers:
+      - trigger: numeric_state
+        entity_id: sensor.air_quality_monitor_pm25
+        above: 25
+        for: {minutes: 10}
+    conditions: [*not_vacation]
+    actions:
+      - action: notify.mobile_app_aziz_iphone
+        data: {message: "🌫️ PM2.5 is {{ trigger.to_state.state }} µg/m³ in the living room. Air the room."}

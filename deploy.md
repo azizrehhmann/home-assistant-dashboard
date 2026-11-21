@@ -207,6 +207,7 @@ The dashboard and packages use these IDs. For each one: Settings → Entities �
   - suction choice and passes (1–3)
   - `script.robot_clean_selected_rooms`, which sends `app_segment_clean` with the selected rooms and `repeat`
 - `ha/packages/scenes.yaml`: the mock's scenes (Morning, Focus, Movie, Night) and `script.away`, which the dashboard's scene buttons call.
+- `ha/packages/automations.yaml` and `vacation_automations.yaml`: the ready automations. Replace the placeholders listed at the top of `automations.md` first.
 - Check: Settings → Devices & services → **Helpers** lists them all.
 - The Vacation button on the Home view links to `/dashboard-home/security`. If your dashboard's URL isn't `dashboard-home`, change that one line.
 
