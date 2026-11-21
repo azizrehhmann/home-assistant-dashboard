@@ -1,0 +1,62 @@
+# Roborock room cleaning: pick rooms + suction + passes, then run script.robot_clean_selected_rooms.
+input_boolean:
+  robot_room_living_room: {name: Robot · Living Room, icon: mdi:sofa}
+  robot_room_studio: {name: Robot · Studio, icon: mdi:desk}
+  robot_room_bedroom: {name: Robot · Bedroom, icon: mdi:bed}
+  robot_room_kitchen: {name: Robot · Kitchen, icon: mdi:stove}
+  robot_room_hallway: {name: Robot · Hallway, icon: mdi:door}
+  robot_room_bathroom: {name: Robot · Bathroom, icon: mdi:shower}
+
+input_select:
+  robot_suction:
+    name: Robot · suction
+    # Must match the vacuum's fan_speed_list attribute exactly (deploy.md C3).
+    options: [quiet, balanced, turbo, max, max_plus]
+    initial: balanced
+    icon: mdi:fan
+
+input_number:
+  robot_passes:
+    name: Robot · passes
+    min: 1
+    max: 3
+    step: 1
+    initial: 1
+    mode: slider
+    icon: mdi:repeat
+
+script:
+  robot_clean_selected_rooms:
+    alias: Robot · clean selected rooms
+    icon: mdi:robot-vacuum
+    variables:
+      # Replace with the segment IDs from roborock.get_maps (deploy.md C3).
+      segment_ids:
+        living_room: 16
+        studio: 17
+        bedroom: 18
+        kitchen: 19
+        hallway: 20
+        bathroom: 21
+      segments: >-
+        {% set ns = namespace(s=[]) %}
+        {% for room, seg in segment_ids.items() if is_state('input_boolean.robot_room_' ~ room, 'on') %}
+          {% set ns.s = ns.s + [seg] %}
+        {% endfor %}
+        {{ ns.s }}
+    sequence:
+      - condition: template
+        value_template: "{{ segments | count > 0 }}"
+      - action: vacuum.set_fan_speed
+        target:
+          entity_id: vacuum.roborock_q5_pro
+        data:
+          fan_speed: "{{ states('input_select.robot_suction') }}"
+      - action: vacuum.send_command
+        target:
+          entity_id: vacuum.roborock_q5_pro
+        data:
+          command: app_segment_clean
+          params:
+            - segments: "{{ segments }}"
+              repeat: "{{ states('input_number.robot_passes') | int }}"

@@ -1,0 +1,456 @@
+# Aziz Home — paste into Dashboard → Edit → Raw configuration editor (deploy.md Phase F).
+# Built-in cards only. Entity IDs follow the deploy.md Phase D table; area IDs follow Phase A5.
+title: Home
+views:
+  # ---------------------------------------------------------------- HOME
+  - title: Home
+    path: home
+    icon: mdi:home
+    type: sections
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.vacation_mode
+                state: "on"
+            card:
+              type: markdown
+              content: >-
+                ### 🧳 Vacation mode is on
+
+                {% if is_state('input_boolean.vacation_open_ended','on') %}Open-ended, since {{ as_timestamp(states('input_datetime.vacation_start')) | timestamp_custom('%a %d %b') }}{% else %}Back {{ as_timestamp(states('input_datetime.vacation_end')) | timestamp_custom('%a %d %b') }}{% endif %}
+                · robot every {{ states('input_number.vacation_robot_every_days') | int }} days at {{ states('input_datetime.vacation_robot_time')[:5] }}
+          - type: markdown
+            content: >-
+              ## {% set h = now().hour %}{{ 'Good night' if h < 5 else 'Good morning' if h < 12 else 'Good afternoon' if h < 18 else 'Good evening' }}, Aziz
+
+              {{ now().strftime('%A %d %B') }} ·
+              {{ states('light') | selectattr('state','eq','on') | list | count }} lights on ·
+              {{ 'Balcony door open' if is_state('binary_sensor.balcony_door','on') else 'Doors closed' }}
+          - type: heading
+            heading: Scenes
+            heading_style: subtitle
+          - type: button
+            name: Morning
+            icon: mdi:weather-sunny
+            grid_options: {columns: 4}
+            tap_action: {action: perform-action, perform_action: scene.turn_on, target: {entity_id: scene.morning}}
+          - type: button
+            name: Focus
+            icon: mdi:target
+            grid_options: {columns: 4}
+            tap_action: {action: perform-action, perform_action: scene.turn_on, target: {entity_id: scene.focus}}
+          - type: button
+            name: Movie
+            icon: mdi:movie-open
+            grid_options: {columns: 4}
+            tap_action: {action: perform-action, perform_action: scene.turn_on, target: {entity_id: scene.movie}}
+          - type: button
+            name: Night
+            icon: mdi:weather-night
+            grid_options: {columns: 4}
+            tap_action: {action: perform-action, perform_action: scene.turn_on, target: {entity_id: scene.night}}
+          - type: button
+            name: Away
+            icon: mdi:exit-run
+            grid_options: {columns: 4}
+            tap_action: {action: perform-action, perform_action: script.away}
+          - type: button
+            name: Vacation
+            icon: mdi:bag-suitcase
+            grid_options: {columns: 4}
+            tap_action: {action: navigate, navigation_path: /dashboard-home/security}
+          - type: button
+            name: All lights on
+            icon: mdi:lightbulb-group
+            grid_options: {columns: 6}
+            tap_action: {action: perform-action, perform_action: light.turn_on, target: {entity_id: all}}
+          - type: button
+            name: All lights off
+            icon: mdi:lightbulb-group-off
+            grid_options: {columns: 6}
+            tap_action: {action: perform-action, perform_action: light.turn_off, target: {entity_id: all}}
+      - type: grid
+        cards:
+          - type: heading
+            heading: Favourites
+          - type: tile
+            entity: light.living_room_light_1
+            features_position: bottom
+            features: [{type: light-brightness}]
+          - type: tile
+            entity: light.studio_lamp
+            features_position: bottom
+            features: [{type: light-brightness}]
+          - type: tile
+            entity: light.bedside_lamp
+            features_position: bottom
+            features: [{type: light-brightness}]
+          - type: tile
+            entity: light.tv_lights
+            features_position: bottom
+            features: [{type: light-brightness}]
+          - type: tile
+            entity: light.kitchen_ceiling
+          - type: tile
+            entity: switch.rice_cooker
+      - type: grid
+        cards:
+          - type: heading
+            heading: Now
+          - type: tile
+            entity: sensor.washer_operation_state
+            name: Washer
+          - type: tile
+            entity: sensor.washer_finish_time
+            name: Washer finishes
+          - type: tile
+            entity: vacuum.roborock_q5_pro
+            features_position: bottom
+            features: [{type: vacuum-commands, commands: [start_pause, return_home]}]
+          - type: tile
+            entity: sensor.studio_illuminance
+            name: Studio light level
+          - type: tile
+            entity: sensor.air_quality_monitor_pm25
+            name: Air quality
+
+  # ---------------------------------------------------------------- ROOMS
+  - title: Rooms
+    path: rooms
+    icon: mdi:view-grid
+    type: sections
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Living Room
+            icon: mdi:sofa
+          - &all_on
+            type: button
+            name: All on
+            icon: mdi:lightbulb-group
+            grid_options: {columns: 6}
+            tap_action: {action: perform-action, perform_action: light.turn_on, target: {area_id: living_room}}
+          - &all_off
+            type: button
+            name: All off
+            icon: mdi:lightbulb-group-off
+            grid_options: {columns: 6}
+            tap_action: {action: perform-action, perform_action: light.turn_off, target: {area_id: living_room}}
+          - type: tile
+            entity: light.living_room_light_1
+            features_position: bottom
+            features: [{type: light-brightness}, {type: light-color-temp}]
+          - type: tile
+            entity: light.living_room_light_2
+            features_position: bottom
+            features: [{type: light-brightness}, {type: light-color-temp}]
+          - type: tile
+            entity: light.living_room_lamp
+            features_position: bottom
+            features: [{type: light-brightness}]
+          - type: tile
+            entity: light.tv_lights
+            features_position: bottom
+            features: [{type: light-brightness}]
+          - type: tile
+            entity: climate.living_room
+          - type: tile
+            entity: binary_sensor.balcony_door
+          - type: tile
+            entity: sensor.air_quality_monitor_pm25
+          - type: tile
+            entity: media_player.living_room_tv
+          - type: tile
+            entity: event.living_room_scroll_wheel
+      - type: grid
+        cards:
+          - type: heading
+            heading: Studio
+            icon: mdi:desk
+          - <<: *all_on
+            tap_action: {action: perform-action, perform_action: light.turn_on, target: {area_id: studio}}
+          - <<: *all_off
+            tap_action: {action: perform-action, perform_action: light.turn_off, target: {area_id: studio}}
+          - type: tile
+            entity: light.studio_lamp
+            features_position: bottom
+            features: [{type: light-brightness}, {type: light-color-temp}]
+          - type: tile
+            entity: light.studio_light
+            features_position: bottom
+            features: [{type: light-brightness}, {type: light-color-temp}]
+          - type: tile
+            entity: climate.studio
+          - type: tile
+            entity: sensor.studio_illuminance
+          - type: tile
+            entity: binary_sensor.studio_presence_zone_1
+          - type: tile
+            entity: binary_sensor.studio_presence_zone_2
+          - type: tile
+            entity: binary_sensor.studio_presence_zone_3
+          - type: tile
+            entity: vacuum.roborock_q5_pro
+          - type: tile
+            entity: event.studio_scroll_wheel
+      - type: grid
+        cards:
+          - type: heading
+            heading: Bedroom
+            icon: mdi:bed
+          - <<: *all_on
+            tap_action: {action: perform-action, perform_action: light.turn_on, target: {area_id: bedroom}}
+          - <<: *all_off
+            tap_action: {action: perform-action, perform_action: light.turn_off, target: {area_id: bedroom}}
+          - type: tile
+            entity: light.bedroom_ceiling
+            features_position: bottom
+            features: [{type: light-brightness}, {type: light-color-temp}]
+          - type: tile
+            entity: light.bedside_lamp
+            features_position: bottom
+            features: [{type: light-brightness}, {type: light-color-temp}]
+          - type: tile
+            entity: light.bedside_lamp_2
+            features_position: bottom
+            features: [{type: light-brightness}, {type: light-color-temp}]
+          - type: tile
+            entity: climate.bedroom
+          - type: tile
+            entity: event.bedroom_dual_button
+          - type: tile
+            entity: event.bedroom_scroll_wheel
+      - type: grid
+        cards:
+          - type: heading
+            heading: Kitchen
+            icon: mdi:stove
+          - <<: *all_on
+            tap_action: {action: perform-action, perform_action: light.turn_on, target: {area_id: kitchen}}
+          - <<: *all_off
+            tap_action: {action: perform-action, perform_action: light.turn_off, target: {area_id: kitchen}}
+          - type: tile
+            entity: light.kitchen_ceiling
+            features_position: bottom
+            features: [{type: light-brightness}, {type: light-color-temp}]
+          - type: tile
+            entity: switch.rice_cooker
+          - type: tile
+            entity: binary_sensor.kitchen_motion
+          - type: tile
+            entity: sensor.washer_operation_state
+      - type: grid
+        cards:
+          - type: heading
+            heading: Hallway, Bathroom & Balcony
+            icon: mdi:door
+          - type: tile
+            entity: binary_sensor.main_door
+          - type: tile
+            entity: binary_sensor.hallway_motion
+          - type: tile
+            entity: climate.bathroom
+          - type: tile
+            entity: light.balcony_lights
+
+  # ---------------------------------------------------------------- CLIMATE
+  - title: Climate
+    path: climate
+    icon: mdi:thermometer
+    type: sections
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: tado° heating
+          - &climate
+            type: tile
+            entity: climate.living_room
+            features_position: bottom
+            features: [{type: target-temperature}]
+          - <<: *climate
+            entity: climate.studio
+          - <<: *climate
+            entity: climate.bedroom
+          - <<: *climate
+            entity: climate.bathroom
+      - type: grid
+        cards:
+          - type: heading
+            heading: Air quality (Living room)
+          - type: tile
+            entity: sensor.air_quality_monitor_pm25
+            name: PM2.5
+          - type: tile
+            entity: sensor.air_quality_monitor_humidity
+            name: Humidity
+          - type: tile
+            entity: sensor.air_quality_monitor_temperature
+            name: Temperature
+
+  # ---------------------------------------------------------------- APPLIANCES
+  - title: Appliances
+    path: appliances
+    icon: mdi:washing-machine
+    type: sections
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Roborock Q5 Pro
+            icon: mdi:robot-vacuum
+          - type: tile
+            entity: vacuum.roborock_q5_pro
+            features_position: bottom
+            features: [{type: vacuum-commands, commands: [start_pause, stop, return_home, locate]}]
+          - type: entities
+            title: Clean selected rooms
+            entities:
+              - input_boolean.robot_room_living_room
+              - input_boolean.robot_room_studio
+              - input_boolean.robot_room_bedroom
+              - input_boolean.robot_room_kitchen
+              - input_boolean.robot_room_hallway
+              - input_boolean.robot_room_bathroom
+              - input_select.robot_suction
+              - input_number.robot_passes
+          - type: button
+            name: Clean selected rooms
+            icon: mdi:play
+            tap_action: {action: perform-action, perform_action: script.robot_clean_selected_rooms}
+          - type: picture-entity
+            entity: image.roborock_q5_pro_map
+            show_state: false
+      - type: grid
+        cards:
+          - type: heading
+            heading: Washing machine
+            icon: mdi:washing-machine
+          - type: tile
+            entity: sensor.washer_operation_state
+          - type: tile
+            entity: sensor.washer_finish_time
+          - type: tile
+            entity: sensor.washer_program_progress
+          - type: heading
+            heading: Kitchen plug
+          - type: tile
+            entity: switch.rice_cooker
+      - type: grid
+        cards:
+          - type: heading
+            heading: Living room media
+            icon: mdi:television
+          - type: media-control
+            entity: media_player.living_room_tv
+          - type: tile
+            entity: light.tv_lights
+          - type: heading
+            heading: Echo Dots
+          - &announce
+            type: button
+            name: Test kitchen
+            icon: mdi:bullhorn
+            grid_options: {columns: 4}
+            tap_action:
+              action: perform-action
+              perform_action: notify.send_message
+              target: {entity_id: notify.kitchen_echo_dot_announce}
+              data: {message: Test announcement from Home Assistant}
+          - <<: *announce
+            name: Test living room
+            tap_action:
+              action: perform-action
+              perform_action: notify.send_message
+              target: {entity_id: notify.living_room_echo_dot_announce}
+              data: {message: Test announcement from Home Assistant}
+          - <<: *announce
+            name: Test studio
+            tap_action:
+              action: perform-action
+              perform_action: notify.send_message
+              target: {entity_id: notify.studio_echo_dot_announce}
+              data: {message: Test announcement from Home Assistant}
+
+  # ---------------------------------------------------------------- SECURITY
+  - title: Security
+    path: security
+    icon: mdi:shield-home
+    type: sections
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Doors & motion
+          - type: tile
+            entity: binary_sensor.main_door
+          - type: tile
+            entity: binary_sensor.balcony_door
+          - type: tile
+            entity: binary_sensor.hallway_motion
+          - type: tile
+            entity: binary_sensor.kitchen_motion
+      - type: grid
+        cards:
+          - type: heading
+            heading: Studio presence (Meross)
+          - type: tile
+            entity: binary_sensor.studio_presence_zone_1
+          - type: tile
+            entity: binary_sensor.studio_presence_zone_2
+          - type: tile
+            entity: binary_sensor.studio_presence_zone_3
+          - type: tile
+            entity: sensor.studio_illuminance
+      - type: grid
+        cards:
+          - type: heading
+            heading: Vacation mode
+            icon: mdi:bag-suitcase
+          - type: tile
+            entity: input_boolean.vacation_mode
+            features_position: bottom
+            features: [{type: toggle}]
+          - type: entities
+            title: Vacation settings
+            entities:
+              - input_datetime.vacation_start
+              - input_boolean.vacation_open_ended
+              - input_datetime.vacation_end
+              - input_number.vacation_robot_every_days
+              - input_datetime.vacation_robot_time
+              - type: section
+                label: Keep running
+              - input_boolean.vacation_security_alerts
+              - input_boolean.vacation_preheat
+              - input_number.vacation_preheat_hours
+              - input_boolean.vacation_presence_simulation
+              - input_boolean.vacation_humidity_alerts
+
+  # ---------------------------------------------------------------- 3D
+  - title: 3D Home
+    path: 3d
+    icon: mdi:cube-outline
+    type: sections
+    max_columns: 2
+    sections:
+      - type: grid
+        cards:
+          - type: markdown
+            content: >-
+              ### 3D Home is coming in the next phase
+
+              The interactive model (Floor3D card) with live lights, doors and the robot's position
+              gets built after all devices are paired. Until then, here is the live Roborock map.
+          - type: picture-entity
+            entity: image.roborock_q5_pro_map
+            show_state: false

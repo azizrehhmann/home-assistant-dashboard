@@ -1,0 +1,49 @@
+# Scenes from the mock (dashboard/index.html). Away is a script because it also starts the robot.
+scene:
+  - name: Morning
+    id: morning
+    icon: mdi:weather-sunny
+    entities:
+      light.bedroom_ceiling: {state: "on", brightness_pct: 60, color_temp_kelvin: 4000}
+      light.bedside_lamp: {state: "on", brightness_pct: 80, color_temp_kelvin: 4000}
+      light.kitchen_ceiling: {state: "on", brightness_pct: 100, color_temp_kelvin: 4000}
+  - name: Focus
+    id: focus
+    icon: mdi:target
+    entities:
+      light.studio_light: {state: "on", brightness_pct: 100, color_temp_kelvin: 4000}
+      light.studio_lamp: {state: "on", brightness_pct: 80, color_temp_kelvin: 4000}
+  - name: Movie
+    id: movie
+    icon: mdi:movie-open
+    entities:
+      light.living_room_light_1: "off"
+      light.living_room_light_2: "off"
+      light.living_room_lamp: {state: "on", brightness_pct: 20}
+      light.tv_lights: {state: "on", brightness_pct: 60}
+  - name: Night
+    id: night
+    icon: mdi:weather-night
+    entities:
+      light.bedroom_ceiling: "off"
+      light.bedside_lamp: {state: "on", brightness_pct: 10, color_temp_kelvin: 2200}
+      light.bedside_lamp_2: "off"
+      light.living_room_light_1: "off"
+      light.living_room_light_2: "off"
+      light.living_room_lamp: "off"
+      light.tv_lights: "off"
+      light.kitchen_ceiling: "off"
+      light.studio_lamp: "off"
+      light.studio_light: "off"
+      light.balcony_lights: "off"
+
+script:
+  away:
+    alias: Away
+    icon: mdi:exit-run
+    sequence:
+      - action: light.turn_off
+        target: {entity_id: all}
+      - action: switch.turn_off
+        target: {entity_id: switch.rice_cooker}
+      - action: script.robot_clean_selected_rooms

@@ -1,0 +1,53 @@
+# Vacation mode helpers. Automations that use them: automations.md (next step).
+input_boolean:
+  vacation_mode:
+    name: Vacation mode
+    icon: mdi:bag-suitcase
+  vacation_open_ended:
+    name: Vacation · until I turn it off
+    icon: mdi:infinity
+  vacation_security_alerts:
+    name: Vacation · security alerts
+    icon: mdi:shield-alert
+  vacation_preheat:
+    name: Vacation · pre-heat before return
+    icon: mdi:radiator
+  vacation_presence_simulation:
+    name: Vacation · presence simulation
+    icon: mdi:lightbulb-auto
+  vacation_humidity_alerts:
+    name: Vacation · humidity alerts
+    icon: mdi:water-percent-alert
+
+input_datetime:
+  vacation_start:
+    name: Vacation start
+    has_date: true
+    has_time: true
+  vacation_end:
+    name: Vacation return
+    has_date: true
+    has_time: true
+  vacation_robot_time:
+    name: Vacation · robot time
+    has_date: false
+    has_time: true
+    initial: "11:00"
+
+input_number:
+  vacation_robot_every_days:
+    name: Vacation · robot every (days)
+    min: 1
+    max: 14
+    step: 1
+    initial: 3
+    unit_of_measurement: d
+    icon: mdi:robot-vacuum
+  vacation_preheat_hours:
+    name: Vacation · pre-heat hours before return
+    min: 1
+    max: 12
+    step: 1
+    initial: 3
+    unit_of_measurement: h
+    icon: mdi:clock-start

@@ -1,0 +1,72 @@
+# Liquid Glass — colours match dashboard/index.html. Pick in Profile → Theme; mode Auto/Light/Dark.
+# Blur needs card-mod (see deploy.md Phase F); without it cards are translucent but not frosted.
+Liquid Glass:
+  card-mod-theme: Liquid Glass
+  card-mod-card: |
+    ha-card {
+      backdrop-filter: blur(28px) saturate(1.8);
+      -webkit-backdrop-filter: blur(28px) saturate(1.8);
+    }
+  ha-card-border-radius: "26px"
+  ha-card-border-width: "1px"
+  ha-dialog-scrim-backdrop-filter: "blur(14px)"
+  mdc-shape-medium: "20px"
+  modes:
+    light:
+      primary-color: "#0a84ff"
+      accent-color: "#0a84ff"
+      primary-text-color: "#141824"
+      secondary-text-color: "#4a5266"
+      disabled-text-color: "#7c8499"
+      divider-color: "rgba(20, 24, 36, 0.08)"
+      primary-background-color: "#eef1f7"
+      secondary-background-color: "rgba(255, 255, 255, 0.70)"
+      lovelace-background: >-
+        radial-gradient(40% 35% at 15% 20%, #cfe0ff, transparent 70%),
+        radial-gradient(35% 35% at 85% 15%, #ffd9c7, transparent 70%),
+        radial-gradient(45% 40% at 70% 85%, #d4f3e4, transparent 70%),
+        radial-gradient(35% 35% at 20% 90%, #efe3ff, transparent 70%),
+        #eef1f7 fixed
+      card-background-color: "rgba(255, 255, 255, 0.48)"
+      ha-card-background: "rgba(255, 255, 255, 0.48)"
+      ha-card-border-color: "rgba(255, 255, 255, 0.85)"
+      ha-card-box-shadow: "0 10px 30px rgba(40, 50, 90, 0.12), 0 1px 2px rgba(40, 50, 90, 0.08)"
+      app-header-background-color: "rgba(238, 241, 247, 0.6)"
+      app-header-text-color: "#141824"
+      sidebar-background-color: "rgba(255, 255, 255, 0.55)"
+      state-light-active-color: "#ffb340"
+      state-switch-active-color: "#ffb340"
+      state-binary_sensor-active-color: "#e08a00"
+      success-color: "#22a55a"
+      warning-color: "#e08a00"
+      error-color: "#e5484d"
+      info-color: "#30b0c7"
+    dark:
+      primary-color: "#409cff"
+      accent-color: "#409cff"
+      primary-text-color: "#f2f4fa"
+      secondary-text-color: "#b5bccd"
+      disabled-text-color: "#8189a0"
+      divider-color: "rgba(255, 255, 255, 0.09)"
+      primary-background-color: "#0b0d16"
+      secondary-background-color: "rgba(58, 63, 84, 0.66)"
+      lovelace-background: >-
+        radial-gradient(40% 35% at 15% 20%, #1d2b5c, transparent 70%),
+        radial-gradient(35% 35% at 85% 15%, #4a2337, transparent 70%),
+        radial-gradient(45% 40% at 70% 85%, #123b36, transparent 70%),
+        radial-gradient(35% 35% at 20% 90%, #2c1f4f, transparent 70%),
+        #0b0d16 fixed
+      card-background-color: "rgba(38, 42, 58, 0.46)"
+      ha-card-background: "rgba(38, 42, 58, 0.46)"
+      ha-card-border-color: "rgba(255, 255, 255, 0.14)"
+      ha-card-box-shadow: "0 10px 30px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.3)"
+      app-header-background-color: "rgba(11, 13, 22, 0.6)"
+      app-header-text-color: "#f2f4fa"
+      sidebar-background-color: "rgba(38, 42, 58, 0.55)"
+      state-light-active-color: "#ffc061"
+      state-switch-active-color: "#ffc061"
+      state-binary_sensor-active-color: "#ffb020"
+      success-color: "#3ccf7a"
+      warning-color: "#ffb020"
+      error-color: "#ff6369"
+      info-color: "#5ad0e6"
