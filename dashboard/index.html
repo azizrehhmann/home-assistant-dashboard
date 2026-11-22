@@ -384,6 +384,7 @@ function sensorTile(id){
   const e=S[id];if(e.available===false)return offTile(e,e.kind); const st=e.kind==='door'?(e.on?'Open':'Closed'):e.kind==='motion'?(e.on?'Motion now':`Clear · ${e.last}`):(e.on?'Occupied':'Clear');
   return `<div class="tile glass ${e.on?'on':''}"><div class="ico">${ic(e.kind)}</div><div><div class="nm">${esc(e.name)}</div><div class="st">${st}</div></div></div>`;
 }
+const echoInfo=(e)=>[e.present==null?null:e.present?'Someone here':`No one${e.presLast?' · '+e.presLast:''}`,e.temp!=null?`${e.temp.toFixed(1)}°`:null,e.lux!=null?`${Math.round(e.lux)} lx`:null].filter(Boolean).join(' · ');
 const infoTile=(icon,name,st,cls='')=>`<div class="tile glass ${cls}"><div class="ico">${ic(icon)}</div><div><div class="nm">${esc(name)}</div><div class="st">${st}</div></div></div>`;
 function vacStatus(){const v=S[VAC];
   if(v.status==='Cleaning')return `Cleaning ${roomName(v.room||'studio')} · pass ${v.pass}/${v.repeat}`;
@@ -450,7 +451,7 @@ function vRooms(){
       ...(r.id==='kitchen'?[`<a href="#appliances" style="color:inherit;text-decoration:none">${infoTile('washer','Washing machine',`${S['sensor.washer'].status} · ${S['sensor.washer'].power===false?'tap to control':'done '+S['sensor.washer'].finish}`,'on')}</a>`]:[]),
       ...(r.id==='studio'?[infoTile('lux','Light level',`${S['sensor.studio_illuminance'].lux} lx · ${luxLabel(S['sensor.studio_illuminance'].lux)}`),infoTile('robot','Roborock Q5 Pro',`${vacStatus()} · ${S[VAC].battery}%`,S[VAC].status==='Cleaning'?'on':'')]:[]),
       ...(r.id==='hallway'?[infoTile('hub','DIRIGERA hub','Online · Matter bridge')]:[]),
-      ...mp.map(k=>k==='media_player.living_room_tv'&&LIVE.on?infoTile('tv','Hisense TV',`via Alexa<span class="tvb" style="justify-content:flex-start;margin-top:6px"><button class="btn small" data-tv="off">Off</button><button class="btn small" data-tv="on">On</button></span>`):infoTile(S[k].icon,S[k].name,S[k].available===false?(LIVE.on?'Not paired yet':'Unresponsive'):S[k].icon==='echo'?(S[k].state?S[k].state[0].toUpperCase()+S[k].state.slice(1):'Idle'):S[k].on?'On':'Off',S[k].available===false?'off-line':'')),
+      ...mp.map(k=>k==='media_player.living_room_tv'&&LIVE.on?infoTile('tv','Hisense TV',`via Alexa<span class="tvb" style="justify-content:flex-start;margin-top:6px"><button class="btn small" data-tv="off">Off</button><button class="btn small" data-tv="on">On</button></span>`):infoTile(S[k].icon,S[k].name,S[k].available===false?(LIVE.on?'Not paired yet':'Unresponsive'):S[k].icon==='echo'?(echoInfo(S[k])||(S[k].state?S[k].state[0].toUpperCase()+S[k].state.slice(1):'Idle')):S[k].on?'On':'Off',S[k].available===false?'off-line':S[k].present?'on':'')),
       ...sen.map(sensorTile),
       ...ev.map(k=>infoTile('remote',S[k].name,LIVE.on?(S[k].available?S[k].last[0].toUpperCase()+S[k].last.slice(1):'Not paired yet'):`Last: ${S[k].last}`,S[k].available===false?'off-line':'')),
     ];
@@ -545,7 +546,7 @@ function vAppliances(){
      <div class="kv"><span>${ic('speaker')}Philips HTL3320</span><b>${S['media_player.soundbar'].on?'On':'Standby'}</b></div>
      <div class="kv"><span>${ic('strip')}Govee TV lights</span><button class="btn small" data-adjust="light.tv_lights">${S['light.tv_lights'].on?S['light.tv_lights'].bri+'% · colour':'Off · adjust'}</button></div>
      <div class="row" style="margin-top:12px"><button class="btn primary" data-scene="movie">Movie mode</button></div></div>
-   <div class="card glass"><h3>Echo Dots</h3><input id="annText" type="text" placeholder="Message to announce" aria-label="Message to announce" style="width:100%;box-sizing:border-box;margin:6px 0 4px;padding:10px 14px;border-radius:14px;border:1px solid var(--hair);background:var(--hair);color:inherit;font:inherit">${echo.length>1?`<div class="kv"><span>${ic('echo')}All Echo Dots</span><button class="btn small" data-announce="all">Announce</button></div>`:''}${echo.map(k=>`<div class="kv"><span>${ic('echo')}${S[k].name}</span><button class="btn small" data-announce="${k}">Announce</button></div>`).join('')}</div>
+   <div class="card glass"><h3>Echo Dots</h3><input id="annText" type="text" placeholder="Message to announce" aria-label="Message to announce" style="width:100%;box-sizing:border-box;margin:6px 0 4px;padding:10px 14px;border-radius:14px;border:1px solid var(--hair);background:var(--hair);color:inherit;font:inherit">${echo.length>1?`<div class="kv"><span>${ic('echo')}All Echo Dots</span><button class="btn small" data-announce="all">Announce</button></div>`:''}${echo.map(k=>`<div class="kv"><span>${ic('echo')}<span>${S[k].name}${echoInfo(S[k])?`<br><small class="note">${echoInfo(S[k])}</small>`:''}</span></span><button class="btn small" data-announce="${k}">Announce</button></div>`).join('')}</div>
    </div>`;
 }
 function vSecurity(){
@@ -555,6 +556,7 @@ function vSecurity(){
    <div class="grid">${vacCard()}
    <div class="card glass"><h3>Doors</h3>${['binary_sensor.main_door','binary_sensor.balcony_door'].map(k=>`<div class="kv"><span>${ic('door')}${S[k].name}</span><span class="pill ${S[k].on?'warn':'ok'}">${S[k].on?'Open':'Closed'}</span></div>`).join('')}</div>
    <div class="card glass"><h3>Motion</h3>${['binary_sensor.hallway_motion','binary_sensor.kitchen_motion'].map(k=>`<div class="kv"><span>${ic('motion')}${S[k].name}</span><b>${S[k].on?'Now':S[k].last}</b></div>`).join('')}</div>
+   ${LIVE.on?`<div class="card glass"><h3>Echo presence<span class="pill">Ultrasound</span></h3>${ids('media_player.echo').map(k=>`<div class="kv"><span>${ic('motion')}${roomName(S[k].area)}</span><span class="pill ${S[k].present?'warn':''}">${S[k].present==null?'—':S[k].present?'Someone here':'Clear'+(S[k].presLast?' · '+S[k].presLast:'')}</span></div>`).join('')}<p class="note" style="margin:8px 0 0">The Echo Dots sense movement with ultrasound: no camera, and it works in the dark.</p></div>`:''}
    <div class="card glass"><h3>Studio presence<span class="pill">Meross · 3 zones</span></h3>
      <div class="zones">${z.map(k=>`<div class="zone ${S[k].on?'on':''}">${S[k].name}<br><small>${S[k].on?'Occupied':'Clear'}</small></div>`).join('')}</div>
      <div class="kv" style="margin-top:10px"><span>${ic('lux')}Light level</span><b>${lx.lux} lx · ${luxLabel(lx.lux)}</b></div>
@@ -906,10 +908,11 @@ const LIVE=(()=>{
         e.cur=+(a.current_temperature??e.cur);e.target=+(a.temperature??e.target);const h=num(`sensor.${id.slice(8)}_humidity`);if(h!=null)e.hum=Math.round(h);
         // tado X exposes no boost flag; Boost = the 25 °C timer it sets
         e.preset=s.state==='off'?'Off':s.state==='auto'?'Schedule':e.target>=25?'Boost':'Manual';L.snap[id]=snapOf(e)}
-      else if(d==='media_player'){e.available=ok(s);if(s){e.on=!['off','standby'].includes(s.state);e.state=s.state}}}
+      else if(d==='media_player'){e.available=ok(s);if(s){e.on=!['off','standby'].includes(s.state);e.state=s.state}
+        if(id.startsWith('media_player.echo_')){const b=id.slice(13),pr=st(`binary_sensor.${b}_presence`);e.temp=num(`sensor.${b}_temperature`);e.lux=num(`sensor.${b}_illuminance`);e.present=ok(pr)?pr.state==='on':null;e.presLast=pr&&pr.state==='off'?ago(pr.last_changed):''}}}
     const aq=S['sensor.air_quality_monitor'];aq.available=num('sensor.air_quality_pm25')!=null;
     if(aq.available)Object.assign(aq,{pm25:num('sensor.air_quality_pm25'),co2:num('sensor.air_quality_co2'),hum:num('sensor.air_quality_humidity'),temp:num('sensor.air_quality_temperature'),rating:(st('sensor.air_quality_rating')?.state||'').replace('_',' ')});
-    const lx=S['sensor.studio_illuminance'];lx.available=num('sensor.studio_illuminance')!=null;if(lx.available)lx.lux=Math.round(num('sensor.studio_illuminance'));
+    const lx=S['sensor.studio_illuminance'],lxv=num('sensor.studio_illuminance')??num('sensor.echo_studio_illuminance');lx.available=lxv!=null;if(lx.available)lx.lux=Math.round(lxv);
     const w=S['sensor.washer'],ws=st('sensor.washer_operation_state');w.available=ok(ws);
     if(w.available){w.status=WASH[ws.state]||ws.state;const ft=st('sensor.washer_finish_time');w.finish=ok(ft)?new Date(ft.state).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—';
       w.progress=num('sensor.washer_program_progress')||0;const pr=[st('select.kitchen_washing_machine_active_program'),st('select.kitchen_washing_machine_selected_program')].find(ok);
