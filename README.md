@@ -9,7 +9,8 @@ Rebuilding a flat's smart home on Home Assistant (HA Green) with a liquid-glass,
 
 - `deploy.md`: step-by-step checklist to get every device into Home Assistant (HA Green, 2026.11+), with sources.
 - `ha/themes/liquid_glass.yaml`: light/dark theme in the mock's colours (blur via card-mod).
-- `ha/dashboards/home.yaml`: sections dashboard (built-in cards only) mirroring the mock.
+- **Live dashboard:** `dashboard/index.html` doubles as the real dashboard. Inside Home Assistant (the "Liquid Glass" Webpage dashboard) it reads and controls real entities; opened on its own it shows mock data. Publish with `python3 tools/deploy_dashboard.py`.
+- `ha/dashboards/home.yaml`: fallback dashboard with built-in cards only.
 - `ha/packages/`: helpers for vacation mode and Roborock room cleaning, scenes, plus ready-to-install automations (`automations.yaml`, `vacation_automations.yaml`).
 - `automations.md`: catalogue of every automation (ready, next round, needs new devices) with test steps.
 

@@ -364,7 +364,9 @@ const head=(title,sub,right='')=>`<header class="top"><div><h1>${title}</h1><p $
 const allSeg=(room)=>`<span class="seg end" role="group" aria-label="${room==='*'?'All lights':roomName(room)+' lights'}"><button data-all="on" data-room="${room}">All on</button><button data-all="off" data-room="${room}">All off</button></span>`;
 
 /* ---------- components ---------- */
+const offTile=(e,icon)=>`<div class="tile glass off-line"><div class="ico">${ic(icon)}</div><div><div class="nm">${esc(e.name)}</div><div class="st">Not paired yet</div></div></div>`;
 function lightTile(id){
+  if(S[id].available===false)return offTile(S[id],S[id].icon);
   const e=S[id], isLight=id.startsWith('light.'), dim=isLight&&!e.nodim, g=glow(e);
   const st=e.on?(dim?`${e.bri}%${e.kelvin?` · ${e.kelvin} K`:''}`:'On'):e.sim?'Off · simulating evenings':'Off';
   return `<div class="tile glass ${e.on?'on':''} ${e.rgb?'rgb':''}" ${g?`style="--glow:${g}"`:''}>
@@ -376,7 +378,7 @@ function lightTile(id){
   </div>`;
 }
 function sensorTile(id){
-  const e=S[id]; const st=e.kind==='door'?(e.on?'Open':'Closed'):e.kind==='motion'?(e.on?'Motion now':`Clear · ${e.last}`):(e.on?'Occupied':'Clear');
+  const e=S[id];if(e.available===false)return offTile(e,e.kind); const st=e.kind==='door'?(e.on?'Open':'Closed'):e.kind==='motion'?(e.on?'Motion now':`Clear · ${e.last}`):(e.on?'Occupied':'Clear');
   return `<div class="tile glass ${e.on?'on':''}"><div class="ico">${ic(e.kind)}</div><div><div class="nm">${esc(e.name)}</div><div class="st">${st}</div></div></div>`;
 }
 const infoTile=(icon,name,st,cls='')=>`<div class="tile glass ${cls}"><div class="ico">${ic(icon)}</div><div><div class="nm">${esc(name)}</div><div class="st">${st}</div></div></div>`;
@@ -392,8 +394,8 @@ function chips(){
    <div class="chip glass"><span class="dot" style="background:var(--on-warm)"></span>${on} light${on===1?'':'s'} on</div>
    <div class="chip glass ${w.status==='Running'?'ok':''}"><span class="dot"></span>Washer <small>${w.status==='Running'?`done ${w.finish}`:w.status}</small></div>
    <div class="chip glass ${v.status==='Cleaning'?'ok':''}"><span class="dot ${v.status==='Cleaning'?'pulse':''}"></span>Robot <small>${vacStatus()} · ${v.battery}%</small></div>
-   <div class="chip glass"><span class="dot" style="background:var(--cool)"></span>Studio <small>${lx.lux} lx · ${luxLabel(lx.lux)}</small></div>
-   <div class="chip glass ${aq.available?'ok':'bad'}"><span class="dot"></span>Air quality <small>${aq.available?'Good':'Offline'}</small></div>
+   <div class="chip glass"><span class="dot" style="background:var(--cool)"></span>Studio <small>${lx.available===false?'not paired':`${lx.lux} lx · ${luxLabel(lx.lux)}`}</small></div>
+   <div class="chip glass ${!aq.available?'bad':/poor/.test(aq.rating||'')?'warn':'ok'}"><span class="dot"></span>Air quality <small>${aq.available?(aq.rating?aq.rating[0].toUpperCase()+aq.rating.slice(1):'Good')+(aq.co2?` · ${aq.co2} ppm CO₂`:''):'Offline'}</small></div>
   </div>`;
 }
 const SCENES=[['morning','Morning','sun','#ff9f0a'],['focus','Focus','focus','#0a84ff'],['movie','Movie','film','#7d5cff'],['night','Night','moon','#5e5ce6'],['away','Away','away','#30b0c7'],['vacation','Vacation','suitcase','#ff375f']];
@@ -426,7 +428,7 @@ function roomCard(r){
 function vHome(){
   const h=new Date().getHours(), g=h<5?'Good night':h<12?'Good morning':h<18?'Good afternoon':'Good evening';
   const fav=['light.living_room_light_1','light.studio_lamp','light.bedside_lamp','light.tv_lights','light.kitchen_ceiling','switch.rice_cooker'];
-  return head(`${g}, Aziz`,'#clock',`<div class="wx glass">${ic('sun')}<div><b>8°</b><small>Partly cloudy · H 10° L 4°</small></div></div>`)+`
+  return head(`${g}, Aziz`,'#clock',`<div class="wx glass">${ic('sun')}<div><b>${LIVE.wx?LIVE.wx.t:8}°</b><small>${LIVE.wx?LIVE.wx.c:'Partly cloudy · H 10° L 4°'}</small></div></div>`)+`
    <section class="sec">${chips()}</section>
    <section class="sec"><h2>Scenes ${allSeg('*')}</h2>${scenes()}</section>
    <section class="sec"><h2>Favourites</h2><div class="tiles">${fav.map(lightTile).join('')}</div></section>
@@ -441,13 +443,13 @@ function vRooms(){
     const ev=ids('event.',r.id), mp=ids('media_player.',r.id), c=S['climate.'+(r.id==='living'?'living_room':r.id)];
     const extra=[
       ...(c?[infoTile('climate','Heating · tado°',`${c.cur.toFixed(1)}° now · ${c.hum}% humidity`)]:[]),
-      ...(r.id==='living'?[infoTile('leaf','Air Quality Monitor','Offline · re-pair in IKEA app','off-line')]:[]),
+      ...(r.id==='living'?[(a=>a.available?infoTile('leaf','Air quality',`${a.rating||'—'} · CO₂ ${a.co2??'—'} ppm · PM2.5 ${a.pm25??'—'}`):infoTile('leaf','Air Quality Monitor','Offline · re-pair in IKEA app','off-line'))(S['sensor.air_quality_monitor'])]:[]),
       ...(r.id==='kitchen'?[infoTile('washer','Washing machine',`${S['sensor.washer'].status} · done ${S['sensor.washer'].finish}`,'on')]:[]),
       ...(r.id==='studio'?[infoTile('lux','Light level',`${S['sensor.studio_illuminance'].lux} lx · ${luxLabel(S['sensor.studio_illuminance'].lux)}`),infoTile('robot','Roborock Q5 Pro',`${vacStatus()} · ${S[VAC].battery}%`,S[VAC].status==='Cleaning'?'on':'')]:[]),
       ...(r.id==='hallway'?[infoTile('hub','DIRIGERA hub','Online · Matter bridge')]:[]),
-      ...mp.map(k=>infoTile(S[k].icon,S[k].name,S[k].available===false?'Unresponsive':S[k].icon==='echo'?'Idle':S[k].on?'On':'Off',S[k].available===false?'off-line':'')),
+      ...mp.map(k=>infoTile(S[k].icon,S[k].name,S[k].available===false?(LIVE.on?'Not paired yet':'Unresponsive'):S[k].icon==='echo'?'Idle':S[k].on?'On':'Off',S[k].available===false?'off-line':'')),
       ...sen.map(sensorTile),
-      ...ev.map(k=>infoTile('remote',S[k].name,`Last: ${S[k].last}`)),
+      ...ev.map(k=>infoTile('remote',S[k].name,LIVE.on?(S[k].available?S[k].last[0].toUpperCase()+S[k].last.slice(1):'Not paired yet'):`Last: ${S[k].last}`,S[k].available===false?'off-line':'')),
     ];
     if(!L.length&&!extra.length) return '';
     return `<section class="sec" id="room-${r.id}"><h2>${r.name}${r.m2?`<span class="meta">${String(r.m2).replace('.',',')} m²</span>`:''}${ids('light.',r.id).length?allSeg(r.id):''}</h2>
@@ -462,14 +464,18 @@ function climateCard(id){
    <div class="stepper"><button data-step="${id}" data-d="-0.5" aria-label="Lower ${c.name} target">−</button>
    <output>Target ${c.target.toFixed(1)}°</output><button data-step="${id}" data-d="0.5" aria-label="Raise ${c.name} target">+</button></div></div>`;
 }
-function vClimate(){
-  return head('Climate',vacOn()?'tado° · 4 zones · Vacation: frost protection':'tado° · 4 zones · Geofencing: Away',`<button class="btn" data-tado="off">Turn off all rooms</button><button class="btn primary" data-tado="boost">Boost heating</button>`)+`
-   <div class="grid">${ids('climate.').map(climateCard).join('')}
-   <div class="card glass"><h3>Air Quality Monitor<span class="pill bad">Offline</span></h3>
+function aqCard(){const a=S['sensor.air_quality_monitor'];
+  if(!a.available)return `<div class="card glass"><h3>Air Quality Monitor<span class="pill bad">Offline</span></h3>
     <p class="note" style="margin:12px 0">IKEA monitor in the Living room. Once it is back online it reports PM2.5, CO₂/VOC, temperature and humidity here.</p>
-    <div class="kv"><span>${ic('leaf')}PM2.5</span><b>— µg/m³</b></div>
-    <div class="kv"><span>${ic('leaf')}Air quality</span><b>—</b></div>
-    <div class="kv"><span>${ic('drop')}Humidity</span><b>—</b></div></div></div>`;
+    <div class="kv"><span>${ic('leaf')}PM2.5</span><b>— µg/m³</b></div><div class="kv"><span>${ic('leaf')}Air quality</span><b>—</b></div><div class="kv"><span>${ic('drop')}Humidity</span><b>—</b></div></div>`;
+  return `<div class="card glass"><h3>Air quality · Living room<span class="pill ${/poor/.test(a.rating)?'warn':'ok'}">${a.rating||'—'}</span></h3>
+    <div class="temp">${a.co2??'—'}<sup>ppm CO₂</sup></div>
+    <div class="kv"><span>${ic('leaf')}PM2.5</span><b>${a.pm25??'—'} µg/m³</b></div><div class="kv"><span>${ic('drop')}Humidity</span><b>${a.hum!=null?Math.round(a.hum):'—'}%</b></div>
+    <div class="kv"><span>${ic('climate')}Temperature</span><b>${a.temp!=null?a.temp.toFixed(1):'—'}°</b></div>${/poor/.test(a.rating)?'<p class="note" style="margin:8px 0 0">Open a window for a few minutes.</p>':''}</div>`}
+function vClimate(){
+  return head('Climate',vacOn()?'tado° · 4 zones · Vacation: frost protection':LIVE.on?'tado° X · 4 radiators':'tado° · 4 zones · Geofencing: Away',`<button class="btn" data-tado="off">Turn off all rooms</button><button class="btn primary" data-tado="boost">Boost heating</button>`)+`
+   <div class="grid">${ids('climate.').map(climateCard).join('')}
+   ${aqCard()}</div>`;
 }
 function washerCard(){
   const w=S['sensor.washer'];
@@ -573,7 +579,7 @@ function route(){const h=location.hash.slice(1);view=RENDER[h]?h:'home';render()
 function tick(){const c=document.getElementById('clock');if(c)c.textContent=new Date().toLocaleString(undefined,{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}
 setInterval(tick,30000);
 let tT;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('show'),2200)}
-function update(){render();if(T3.ready)T3.sync();if(sheetId)drawSheet()}
+function update(){if(LIVE.on)LIVE.push();render();if(T3.ready)T3.sync();if(sheetId)drawSheet()}
 
 /* ---------- light sheet (warmth / colour) ---------- */
 let sheetId=null, sheetReturn=null;
@@ -805,6 +811,7 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('button,a[data-jump]');if(!b)return;
   const d=b.dataset,v=S[VAC];
   const keepOff=()=>toast('Vacation mode keeps lights and plugs off');
+  if(LIVE.on&&LIVE.click(d))return;
   if(d.vdstart){VD.startMode=d.vdstart;drawSheet()}
   else if(d.vdend){VD.endMode=d.vdend;drawSheet()}
   else if(d.vdevery){VD.robotEvery=+d.vdevery;drawSheet()}
@@ -852,5 +859,92 @@ document.addEventListener('change',e=>{const t=e.target;
   if(sheetId==='vacation'&&t.id?.startsWith('vd-')){if(t.value)VD[{'vd-start':'start','vd-end':'end','vd-time':'robotTime'}[t.id]]=t.value;drawSheet();return}
   if(t.dataset.bri)update();else if(sheetId&&e.target.id?.startsWith('sh-'))drawSheet()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sheetId)closeSheet()});
+
+/* ---------- live mode: inside Home Assistant (Webpage dashboard, same origin) read and drive real entities ---------- */
+const LIVE=(()=>{
+  let host=null;try{if(parent!==window)host=parent.document.querySelector('home-assistant')}catch(e){}
+  const L={on:!!host?.hass,snap:{},last:null,wx:null};if(!L.on)return L;
+  const TPL=JSON.parse(JSON.stringify(S)); // which mock tiles have warmth / colour controls
+  const H=()=>host.hass, st=(id)=>H().states[id], ok=(s)=>!!s&&!['unavailable','unknown'].includes(s.state);
+  const call=(dom,svc,data)=>H().callService(dom,svc,data).catch(err=>toast('Home Assistant: '+(err.message||err.code||'error')));
+  const hex=(c)=>'#'+c.map(x=>x.toString(16).padStart(2,'0')).join(''), rgbOf=(h)=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+  const ago=(t)=>{const m=Math.round((Date.now()-new Date(t))/6e4);return m<1?'just now':m<60?`${m} min ago`:m<1440?`${Math.round(m/60)} h ago`:`${Math.round(m/1440)} d ago`};
+  const rk=(r)=>r==='living'?'living_room':r;
+  const FAN={gentle:'Gentle',quiet:'Quiet',balanced:'Balanced',turbo:'Turbo',max:'Max',max_plus:'Max+'}, FANR=Object.fromEntries(Object.entries(FAN).map(([a,b])=>[b,a]));
+  const WASH={run:'Running',finished:'Finished',ready:'Ready',inactive:'Off',pause:'Paused',delayedstart:'Delayed start',actionrequired:'Needs attention',aborting:'Stopping',error:'Error'};
+  const VROOM={Study:'studio',Bathroom:'bathroom',Hall:'hallway','Living room':'living',Kitchen:'kitchen',Bedroom:'bedroom'};
+  const BAT={'event.bedroom_dual_button':'sensor.bedroom_button_battery','event.bedroom_scroll_wheel':'sensor.bedroom_wheel_battery','event.living_room_scroll_wheel':'sensor.living_room_wheel_battery','event.studio_scroll_wheel':'sensor.studio_wheel_battery'};
+  const num=(id)=>{const s=st(id);return ok(s)?+s.state:null};
+  const snapOf=(e)=>({on:e.on,bri:e.bri,kelvin:e.kelvin,rgb:e.rgb,target:e.target,preset:e.preset});
+  L.pull=()=>{
+    if(H().states===L.last)return false;L.last=H().states;
+    for(const [id,e] of Object.entries(S)){const d=id.split('.')[0],s=st(id);
+      if(d==='light'||d==='switch'){e.available=ok(s);if(!e.available){e.on=false;continue}
+        e.on=s.state==='on';const a=s.attributes,m=a.supported_color_modes||[];
+        if(d==='light'){if(a.brightness!=null)e.bri=Math.max(1,Math.round(a.brightness/2.55));e.nodim=m.length===1&&m[0]==='onoff';
+          if(TPL[id].kelvin&&m.includes('color_temp'))e.kelvin=a.color_temp_kelvin||e.kelvin;else delete e.kelvin;
+          if(TPL[id].rgb&&m.some(x=>['hs','rgb','xy','rgbw','rgbww'].includes(x))){if(a.rgb_color)e.rgb=hex(a.rgb_color)}else delete e.rgb}
+        L.snap[id]=snapOf(e)}
+      else if(d==='binary_sensor'){e.available=ok(s);e.on=s?.state==='on';if(s)e.last=ago(s.last_changed)}
+      else if(d==='climate'){e.available=ok(s);if(!e.available)continue;const a=s.attributes;
+        e.cur=+(a.current_temperature??e.cur);e.target=+(a.temperature??e.target);const h=num(`sensor.${id.slice(8)}_humidity`);if(h!=null)e.hum=Math.round(h);
+        e.preset=s.state==='off'?'Off':'Heating';L.snap[id]=snapOf(e)}
+      else if(d==='media_player'){e.available=ok(s);if(s)e.on=!['off','standby'].includes(s.state)}}
+    const aq=S['sensor.air_quality_monitor'];aq.available=num('sensor.air_quality_pm25')!=null;
+    if(aq.available)Object.assign(aq,{pm25:num('sensor.air_quality_pm25'),co2:num('sensor.air_quality_co2'),hum:num('sensor.air_quality_humidity'),temp:num('sensor.air_quality_temperature'),rating:(st('sensor.air_quality_rating')?.state||'').replace('_',' ')});
+    const lx=S['sensor.studio_illuminance'];lx.available=num('sensor.studio_illuminance')!=null;if(lx.available)lx.lux=Math.round(num('sensor.studio_illuminance'));
+    const w=S['sensor.washer'],ws=st('sensor.washer_operation_state');w.available=ok(ws);
+    if(w.available){w.status=WASH[ws.state]||ws.state;const ft=st('sensor.washer_finish_time');w.finish=ok(ft)?new Date(ft.state).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—';
+      w.progress=num('sensor.washer_program_progress')||0;const pr=[st('select.kitchen_washing_machine_active_program'),st('select.kitchen_washing_machine_selected_program')].find(ok);
+      w.program=pr?pr.state.replace('laundry_care_washer_program_','').replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()):'No program';w.detail=ws.state==='run'?`${w.progress}% done`:'Siemens WG44B2040'}
+    const v=S[VAC],vs=st(VAC);v.available=ok(vs);
+    if(v.available){v.status={docked:'Docked',cleaning:'Cleaning',returning:'Returning',paused:'Paused',idle:'Idle',error:'Error'}[vs.state]||vs.state;
+      v.battery=Math.round(num('sensor.studio_roborock_battery')??v.battery);const f=st('input_select.robot_suction');if(ok(f))v.fan=FAN[f.state]||f.state;
+      v.rooms=VAC_ROOMS.filter(r=>st('input_boolean.robot_room_'+rk(r))?.state==='on');v.repeat=Math.round(num('input_number.robot_passes')||1);
+      const cr=st('sensor.studio_roborock_current_room');v.room=ok(cr)?VROOM[cr.state]||null:null;v.pass=1;
+      const le=st('sensor.studio_roborock_last_clean_end'),ar=num('sensor.studio_roborock_cleaning_area');if(ok(le))v.lastClean=ago(le.state)+(ar?` · ${Math.round(ar)} m²`:'')}
+    for(const [ev,b] of Object.entries(BAT)){const p=num(b);S[ev].available=p!=null;S[ev].last=p!=null?`battery ${p}%`:'—'}
+    const V=S[VAC_ID],vm=st(VAC_ID);
+    if(ok(vm)){const dt=(x)=>{const s=st(x);return ok(s)?s.state.slice(0,10):null},on=(x)=>st('input_boolean.vacation_'+x)?.state==='on';
+      Object.assign(V,{on:vm.state==='on',scheduled:false,start:dt('input_datetime.vacation_start')||today(),end:on('open_ended')?null:dt('input_datetime.vacation_end'),
+        robotEvery:Math.round(num('input_number.vacation_robot_every_days')||3),robotTime:(st('input_datetime.vacation_robot_time')?.state||'11:00').slice(0,5),
+        alerts:on('security_alerts'),preheat:on('preheat'),preheatH:Math.round(num('input_number.vacation_preheat_hours')||3),sim:on('presence_simulation'),humidity:on('humidity_alerts')})}
+    const wx=Object.values(H().states).find(s=>s.entity_id.startsWith('weather.'));
+    L.wx=ok(wx)?{t:Math.round(wx.attributes.temperature),c:wx.state.replace(/[-_]/g,' ').replace(/^./,c=>c.toUpperCase())}:null;
+    return true};
+  // send what a click changed (lights, plugs, heating) by diffing against the last state Home Assistant reported
+  L.push=()=>{for(const [id,p] of Object.entries(L.snap)){const e=S[id],d=id.split('.')[0];if(!e.available)continue;
+      if(d==='climate'){if(e.target!==p.target)call('climate','set_temperature',{entity_id:id,temperature:e.target});
+        if(e.preset!==p.preset)call('climate','set_hvac_mode',{entity_id:id,hvac_mode:/Off|Frost/.test(e.preset)?'off':'heat'})}
+      else if(!e.on&&p.on)call(d,'turn_off',{entity_id:id});
+      else if(e.on&&(!p.on||e.bri!==p.bri||e.kelvin!==p.kelvin||e.rgb!==p.rgb)){const data={entity_id:id};
+        if(d==='light'&&!e.nodim){data.brightness_pct=e.bri;if(e.rgb&&e.rgb!==p.rgb)data.rgb_color=rgbOf(e.rgb);else if(e.kelvin&&(e.kelvin!==p.kelvin||!p.on))data.color_temp_kelvin=e.kelvin}
+        call(d,'turn_on',data)}
+      L.snap[id]=snapOf(e)}};
+  const ib=(x,v)=>call('input_boolean',v?'turn_on':'turn_off',{entity_id:'input_boolean.'+x});
+  // actions that are services in Home Assistant, not light/plug changes; returns true when handled
+  L.click=(d)=>{const v=S[VAC];
+    if(d.scene&&d.scene!=='vacation'){if(vacOn())return toast('End vacation mode to use scenes'),true;
+      d.scene==='away'?call('script','turn_on',{entity_id:'script.away'}):call('scene','turn_on',{entity_id:'scene.'+d.scene});toast(`${SCENES.find(s=>s[0]===d.scene)[1]} scene on`);return true}
+    if(d.vroom){ib('robot_room_'+rk(d.vroom),!v.rooms.includes(d.vroom));return true}
+    if(d.fan){call('input_select','select_option',{entity_id:'input_select.robot_suction',option:FANR[d.fan]||d.fan.toLowerCase()});toast(`Suction: ${d.fan}`);return true}
+    if(d.repeat){call('input_number','set_value',{entity_id:'input_number.robot_passes',value:+d.repeat});return true}
+    if(d.vac==='start'){call('script','turn_on',{entity_id:'script.robot_clean_selected_rooms'});toast(`Cleaning ${v.rooms.map(roomName).join(', ')} · ${v.repeat}× · ${v.fan}`);return true}
+    if(d.vac){call('vacuum',{all:'start',pause:'pause',dock:'return_to_base'}[d.vac],{entity_id:VAC});toast({all:'Cleaning the whole flat',pause:'Robot paused',dock:'Robot returning to dock'}[d.vac]);return true}
+    if(d.announce){toast('Echo Dots are not connected to Home Assistant yet');return true}
+    if('vdgo' in d){const s=VD.startMode==='now'?today():VD.start,dated=VD.endMode==='date';
+      call('input_datetime','set_datetime',{entity_id:'input_datetime.vacation_start',date:s});if(dated)call('input_datetime','set_datetime',{entity_id:'input_datetime.vacation_end',date:VD.end});
+      call('input_number','set_value',{entity_id:'input_number.vacation_robot_every_days',value:VD.robotEvery});call('input_datetime','set_datetime',{entity_id:'input_datetime.vacation_robot_time',time:VD.robotTime+':00'});
+      call('input_number','set_value',{entity_id:'input_number.vacation_preheat_hours',value:VD.preheatH});
+      ib('vacation_open_ended',!dated);ib('vacation_security_alerts',VD.alerts);ib('vacation_preheat',VD.preheat&&dated);ib('vacation_presence_simulation',VD.sim);ib('vacation_humidity_alerts',VD.humidity);
+      closeSheet();if(s>today())toast(`Vacation saved from ${fmtD(s)}`);else{ib('vacation_mode',true);toast('Vacation mode on')}return true}
+    if('vacEnd' in d){ib('vacation_mode',false);toast('Vacation mode off');return true}
+    if('vacNow' in d){ib('vacation_mode',true);return true}
+    return false};
+  let dragging=false;addEventListener('pointerdown',e=>{if(e.target.type==='range')dragging=true});addEventListener('pointerup',()=>dragging=false);
+  // shortcut: polls the parent's hass object once a second instead of subscribing; fine for one dashboard, switch to subscribeEntities if it ever feels laggy.
+  setInterval(()=>{if(!dragging&&L.pull()){render();if(T3.ready)T3.sync();if(sheetId&&sheetId!=='vacation')drawSheet()}},1000);
+  L.pull();return L;
+})();
 addEventListener('hashchange',route);route();
 </script>
