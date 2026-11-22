@@ -445,10 +445,10 @@ function vRooms(){
     const extra=[
       ...(c?[infoTile('climate','Heating · tado°',`${c.cur.toFixed(1)}° now · ${c.hum}% humidity`)]:[]),
       ...(r.id==='living'?[(a=>a.available?infoTile('leaf','Air quality',`${a.rating||'—'} · CO₂ ${a.co2??'—'} ppm · PM2.5 ${a.pm25??'—'}`):infoTile('leaf','Air Quality Monitor','Offline · re-pair in IKEA app','off-line'))(S['sensor.air_quality_monitor'])]:[]),
-      ...(r.id==='kitchen'?[infoTile('washer','Washing machine',`${S['sensor.washer'].status} · done ${S['sensor.washer'].finish}`,'on')]:[]),
+      ...(r.id==='kitchen'?[`<a href="#appliances" style="color:inherit;text-decoration:none">${infoTile('washer','Washing machine',`${S['sensor.washer'].status} · ${S['sensor.washer'].power===false?'tap to control':'done '+S['sensor.washer'].finish}`,'on')}</a>`]:[]),
       ...(r.id==='studio'?[infoTile('lux','Light level',`${S['sensor.studio_illuminance'].lux} lx · ${luxLabel(S['sensor.studio_illuminance'].lux)}`),infoTile('robot','Roborock Q5 Pro',`${vacStatus()} · ${S[VAC].battery}%`,S[VAC].status==='Cleaning'?'on':'')]:[]),
       ...(r.id==='hallway'?[infoTile('hub','DIRIGERA hub','Online · Matter bridge')]:[]),
-      ...mp.map(k=>infoTile(S[k].icon,S[k].name,S[k].available===false?(LIVE.on?'Not paired yet':'Unresponsive'):S[k].icon==='echo'?'Idle':S[k].on?'On':'Off',S[k].available===false?'off-line':'')),
+      ...mp.map(k=>infoTile(S[k].icon,S[k].name,S[k].available===false?(LIVE.on?'Not paired yet':'Unresponsive'):S[k].icon==='echo'?(S[k].state?S[k].state[0].toUpperCase()+S[k].state.slice(1):'Idle'):S[k].on?'On':'Off',S[k].available===false?'off-line':'')),
       ...sen.map(sensorTile),
       ...ev.map(k=>infoTile('remote',S[k].name,LIVE.on?(S[k].available?S[k].last[0].toUpperCase()+S[k].last.slice(1):'Not paired yet'):`Last: ${S[k].last}`,S[k].available===false?'off-line':'')),
     ];
@@ -480,7 +480,7 @@ function vClimate(){
 }
 const PROG_SHORT={cotton_eco_4060:'Eco 40-60',cotton:'Cotton',easy_care:'Easy care',mix:'Mix',delicates_silk:'Delicates',wool:'Wool',dark_wash:'Darks',towels:'Towels',shirts_blouses:'Shirts',sport_fitness:'Sport',super_153045_super_1530:'Quick 15/30',power_speed_59:'Speed 59',sensitive:'Sensitive',outdoor:'Outdoor',drum_clean:'Drum clean',curtains:'Curtains',sport_shoes:'Shoes',my_time:'My time'};
 const progName=(o)=>PROG_SHORT[o.replace('laundry_care_washer_program_','')]||o.replace('laundry_care_washer_program_','').replace(/_/g,' ');
-function washerControls(w){if(!w.live)return '';const run=['Running','Paused','Delayed start'].includes(w.status);
+function washerControls(w){if(!w.live)return '';if(!w.power)return `<p class="note" style="margin:12px 0 0">Switch the washer on to choose a program.</p>`;const run=['Running','Paused','Delayed start'].includes(w.status);
   const fav=['cotton_eco_4060','cotton','easy_care','mix','delicates_silk','wool','towels','super_153045_super_1530'].map(k=>'laundry_care_washer_program_'+k).filter(o=>w.programs.includes(o));
   return `<div class="lbl">Program <b>${w.selected?progName(w.selected):'none'}</b></div>
    <div class="toggles">${fav.map(o=>`<button class="tog" data-wprog="${o}" aria-pressed="${w.selected===o}" ${run?'disabled':''}>${progName(o)}</button>`).join('')}</div>
@@ -489,7 +489,7 @@ function washerControls(w){if(!w.live)return '';const run=['Running','Paused','D
      :`<button class="btn primary" data-wash="start" ${w.remote&&w.selected?'':'disabled'}>Start ${w.selected?progName(w.selected):''}</button>`}</div>`}
 function washerCard(){
   const w=S['sensor.washer'];
-  return `<div class="card glass"><h3>Washing machine<span class="pill ${w.status==='Running'?'ok':''}">${w.status}</span></h3>
+  return `<div class="card glass"><h3>Washing machine<span class="pill ${w.status==='Running'?'ok':''}">${w.status}</span>${w.live?`<button class="sw" data-wpower aria-pressed="${w.power}" aria-label="Washer power" style="margin-left:8px"></button>`:''}</h3>
    <div class="flex" style="margin-top:14px"><div class="ring" style="--p:${w.progress}"><div><b>${w.finish}</b><small>finishes</small></div></div>
    <div style="min-width:0"><div style="font-weight:600;font-size:17px">${w.program}</div><div class="note">${w.detail}</div><div class="note">Siemens · Kitchen</div></div></div>${washerControls(w)}</div>`;
 }
@@ -542,7 +542,7 @@ function vAppliances(){
      <div class="kv"><span>${ic('speaker')}Philips HTL3320</span><b>${S['media_player.soundbar'].on?'On':'Standby'}</b></div>
      <div class="kv"><span>${ic('strip')}Govee TV lights</span><button class="btn small" data-adjust="light.tv_lights">${S['light.tv_lights'].on?S['light.tv_lights'].bri+'% · colour':'Off · adjust'}</button></div>
      <div class="row" style="margin-top:12px"><button class="btn primary" data-scene="movie">Movie mode</button></div></div>
-   <div class="card glass"><h3>Echo Dots</h3>${echo.map(k=>`<div class="kv"><span>${ic('echo')}${S[k].name}</span><button class="btn small" data-announce="${k}">Announce</button></div>`).join('')}</div>
+   <div class="card glass"><h3>Echo Dots</h3><input id="annText" type="text" placeholder="Message to announce" aria-label="Message to announce" style="width:100%;box-sizing:border-box;margin:6px 0 4px;padding:10px 14px;border-radius:14px;border:1px solid var(--hair);background:var(--hair);color:inherit;font:inherit">${echo.length>1?`<div class="kv"><span>${ic('echo')}All Echo Dots</span><button class="btn small" data-announce="all">Announce</button></div>`:''}${echo.map(k=>`<div class="kv"><span>${ic('echo')}${S[k].name}</span><button class="btn small" data-announce="${k}">Announce</button></div>`).join('')}</div>
    </div>`;
 }
 function vSecurity(){
@@ -902,7 +902,7 @@ const LIVE=(()=>{
       else if(d==='climate'){e.available=ok(s);if(!e.available)continue;const a=s.attributes;
         e.cur=+(a.current_temperature??e.cur);e.target=+(a.temperature??e.target);const h=num(`sensor.${id.slice(8)}_humidity`);if(h!=null)e.hum=Math.round(h);
         e.preset=s.state==='off'?'Off':'Heating';L.snap[id]=snapOf(e)}
-      else if(d==='media_player'){e.available=ok(s);if(s)e.on=!['off','standby'].includes(s.state)}}
+      else if(d==='media_player'){e.available=ok(s);if(s){e.on=!['off','standby'].includes(s.state);e.state=s.state}}}
     const aq=S['sensor.air_quality_monitor'];aq.available=num('sensor.air_quality_pm25')!=null;
     if(aq.available)Object.assign(aq,{pm25:num('sensor.air_quality_pm25'),co2:num('sensor.air_quality_co2'),hum:num('sensor.air_quality_humidity'),temp:num('sensor.air_quality_temperature'),rating:(st('sensor.air_quality_rating')?.state||'').replace('_',' ')});
     const lx=S['sensor.studio_illuminance'];lx.available=num('sensor.studio_illuminance')!=null;if(lx.available)lx.lux=Math.round(num('sensor.studio_illuminance'));
@@ -911,6 +911,7 @@ const LIVE=(()=>{
       w.progress=num('sensor.washer_program_progress')||0;const pr=[st('select.kitchen_washing_machine_active_program'),st('select.kitchen_washing_machine_selected_program')].find(ok);
       w.program=pr?pr.state.replace('laundry_care_washer_program_','').replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()):'No program';w.detail=ws.state==='run'?`${w.progress}% done`:'Siemens WG44B2040';
       const sel=st('select.kitchen_washing_machine_selected_program');w.programs=sel?.attributes.options||[];w.selected=ok(sel)?sel.state:(w.selected||'');
+      w.power=st('switch.kitchen_washing_machine_power')?.state==='on';if(pr)w.program=progName(pr.state);
       w.remote=st('binary_sensor.kitchen_washing_machine_remote_start')?.state==='on';w.door=st('sensor.kitchen_washing_machine_door')?.state;w.live=true;
       w.canPause=!!st('button.kitchen_washing_machine_pause_program');w.canResume=!!st('button.kitchen_washing_machine_resume_program')}
     const v=S[VAC],vs=st(VAC);v.available=ok(vs);
@@ -948,12 +949,15 @@ const LIVE=(()=>{
     if(d.repeat){call('input_number','set_value',{entity_id:'input_number.robot_passes',value:+d.repeat});return true}
     if(d.vac==='start'){call('script','turn_on',{entity_id:'script.robot_clean_selected_rooms'});toast(`Cleaning ${v.rooms.map(roomName).join(', ')} · ${v.repeat}× · ${v.fan}`);return true}
     if(d.vac){call('vacuum',{all:'start',pause:'pause',dock:'return_to_base'}[d.vac],{entity_id:VAC});toast({all:'Cleaning the whole flat',pause:'Robot paused',dock:'Robot returning to dock'}[d.vac]);return true}
+    if('wpower' in d){const w=S['sensor.washer'];w.power=!w.power;call('switch',w.power?'turn_on':'turn_off',{entity_id:'switch.kitchen_washing_machine_power'});toast(w.power?'Washer on':'Washer off');render();return true}
     if(d.wprog){call('select','select_option',{entity_id:'select.kitchen_washing_machine_selected_program',option:d.wprog});S['sensor.washer'].selected=d.wprog;render();return true}
     if(d.wash){const w=S['sensor.washer'];
       if(d.wash==='start'){if(!w.selected)return toast('Pick a program first'),true;call('select','select_option',{entity_id:'select.kitchen_washing_machine_active_program',option:w.selected});toast(`Starting ${progName(w.selected)}`)}
       else call('button','press',{entity_id:`button.kitchen_washing_machine_${d.wash}_program`}),toast({stop:'Stopping the washer',pause:'Pausing',resume:'Resuming'}[d.wash]);
       return true}
-    if(d.announce){toast('Echo Dots are not connected to Home Assistant yet');return true}
+    if(d.announce){const t=document.getElementById('annText'),msg=t?.value.trim();if(!msg)return toast('Type a message first'),t?.focus(),true;
+      const to=d.announce==='all'?Object.keys(S).filter(k=>k.startsWith('media_player.echo')):[d.announce];
+      to.forEach(k=>call('notify','send_message',{entity_id:k.replace('media_player.','notify.')+'_announce',message:msg}));t.value='';toast(`Announced on ${to.length>1?'all Echo Dots':S[to[0]].name}`);return true}
     if('vdgo' in d){const s=VD.startMode==='now'?today():VD.start,dated=VD.endMode==='date';
       call('input_datetime','set_datetime',{entity_id:'input_datetime.vacation_start',date:s});if(dated)call('input_datetime','set_datetime',{entity_id:'input_datetime.vacation_end',date:VD.end});
       call('input_number','set_value',{entity_id:'input_number.vacation_robot_every_days',value:VD.robotEvery});call('input_datetime','set_datetime',{entity_id:'input_datetime.vacation_robot_time',time:VD.robotTime+':00'});
@@ -966,7 +970,7 @@ const LIVE=(()=>{
   let busy=0;addEventListener('pointerdown',()=>busy=Infinity,true);addEventListener('pointerup',()=>busy=Date.now()+600,true);addEventListener('pointercancel',()=>busy=0,true);
   // shortcut: polls the parent's hass object once a second instead of subscribing; fine for one dashboard, switch to subscribeEntities if it ever feels laggy.
   let sheetRef=null;
-  setInterval(()=>{if(Date.now()>busy&&L.pull()){render();if(T3.ready)T3.sync();
+  setInterval(()=>{if(Date.now()>busy&&!document.activeElement?.matches('input[type=text]')&&L.pull()){render();if(T3.ready)T3.sync();
     if(sheetId&&sheetId!=='vacation'&&H().states[sheetId]!==sheetRef){sheetRef=H().states[sheetId];if(!document.activeElement?.closest('#sheet input'))drawSheet()}}},1000);
   L.pull();return L;
 })();
