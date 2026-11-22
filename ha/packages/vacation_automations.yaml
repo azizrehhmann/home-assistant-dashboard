@@ -1,5 +1,5 @@
 # Vacation mode automations. Helpers live in vacation.yaml.
-# Replace notify.mobile_app_aziz_iphone with your phone's notify action (Tools → Actions → search "mobile_app").
+# Phone notifications go to notify.mobile_app_azizs_iphone.
 automation:
   - id: vacation_start_scheduled
     alias: Vacation · start at the scheduled time
@@ -33,7 +33,7 @@ automation:
       - action: climate.set_hvac_mode
         target: {entity_id: [climate.living_room, climate.studio, climate.bedroom, climate.bathroom]}
         data: {hvac_mode: "off"}
-      - action: notify.mobile_app_aziz_iphone
+      - action: notify.mobile_app_azizs_iphone
         data:
           title: Vacation mode on
           message: >-
@@ -117,7 +117,7 @@ automation:
             entity_id: vacuum.roborock_q5_pro
             state: [cleaning, returning]
     actions:
-      - action: notify.mobile_app_aziz_iphone
+      - action: notify.mobile_app_azizs_iphone
         data:
           title: "⚠️ {{ trigger.to_state.name }}"
           message: "Triggered at {{ now().strftime('%H:%M') }} while you're on vacation."
@@ -183,7 +183,7 @@ automation:
         entity_id: input_boolean.vacation_humidity_alerts
         state: "on"
     actions:
-      - action: notify.mobile_app_aziz_iphone
+      - action: notify.mobile_app_azizs_iphone
         data:
           title: "💧 High humidity: {{ trigger.to_state.name }}"
           message: "{{ trigger.to_state.state }}% for 2 hours. Risk of mould; ask a neighbour to air the flat."
@@ -204,9 +204,9 @@ automation:
     actions:
       # cloud tado "auto" = back to your tado schedule (HomeKit "heat" would be a manual override)
       - action: climate.set_hvac_mode
-        target: {entity_id: [climate.living_room_tado, climate.studio_tado, climate.bedroom_tado, climate.bathroom_tado]}
+        target: {entity_id: [climate.living_room, climate.studio, climate.bedroom, climate.bathroom]}
         data: {hvac_mode: auto}
-      - action: notify.mobile_app_aziz_iphone
+      - action: notify.mobile_app_azizs_iphone
         data:
           message: "🔥 Heating back on for your return."
 
@@ -233,9 +233,9 @@ automation:
     actions:
       # cloud tado "auto" = back to your tado schedule (HomeKit "heat" would be a manual override)
       - action: climate.set_hvac_mode
-        target: {entity_id: [climate.living_room_tado, climate.studio_tado, climate.bedroom_tado, climate.bathroom_tado]}
+        target: {entity_id: [climate.living_room, climate.studio, climate.bedroom, climate.bathroom]}
         data: {hvac_mode: auto}
-      - action: notify.mobile_app_aziz_iphone
+      - action: notify.mobile_app_azizs_iphone
         data:
           title: Welcome back
           message: Vacation mode is off and your automations are running again.

@@ -46,3 +46,5 @@ script:
         target: {entity_id: all}
       - action: switch.turn_off
         target: {entity_id: switch.rice_cooker}
+      - action: vacuum.start
+        target: {entity_id: vacuum.roborock_q5_pro}

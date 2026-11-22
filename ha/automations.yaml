@@ -19,8 +19,8 @@
     target:
       entity_id: light.studio_lamp
     data:
-      brightness_pct: 60
-      color_temp_kelvin: 2700
+      brightness_pct: '{{ state_attr(''sensor.light_mode'', ''brightness_pct'') }}'
+      color_temp_kelvin: '{{ state_attr(''sensor.light_mode'', ''kelvin'') }}'
 - id: wake_up_light
   alias: Schedule · weekday wake-up light
   triggers:
@@ -87,6 +87,7 @@
       entity_id: light.balcony_lights
 - id: kitchen_motion_light
   alias: Kitchen · motion light
+  description: Turns the light on only if it is off and the room is dark. Brightness and colour come from sensor.light_mode (packages/lighting.yaml). Never overrides a light you set yourself; off after 3 min without motion.
   mode: restart
   triggers:
   - trigger: state
@@ -96,33 +97,40 @@
   - condition: state
     entity_id: input_boolean.vacation_mode
     state: 'off'
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: light.kitchen_ceiling
+      state: unavailable
   actions:
   - if:
-    - condition: time
-      after: '22:00:00'
-      before: 06:00:00
+    - condition: state
+      entity_id: light.kitchen_ceiling
+      state: 'off'
+    - condition: numeric_state
+      entity_id: sensor.kitchen_illuminance
+      below: 30
     then:
     - action: light.turn_on
       target:
         entity_id: light.kitchen_ceiling
       data:
-        brightness_pct: 15
-        color_temp_kelvin: 2200
-    else:
-    - action: light.turn_on
-      target:
-        entity_id: light.kitchen_ceiling
-      data:
-        brightness_pct: 100
-        color_temp_kelvin: 4000
+        brightness_pct: '{{ state_attr(''sensor.light_mode'', ''brightness_pct'') }}'
+        color_temp_kelvin: '{{ state_attr(''sensor.light_mode'', ''kelvin'') }}'
+        transition: 1
   - wait_for_trigger:
     - trigger: state
       entity_id: binary_sensor.kitchen_motion
       to: 'off'
       for: 00:03:00
+  - condition: state
+    entity_id: light.kitchen_ceiling
+    state: 'on'
   - action: light.turn_off
     target:
       entity_id: light.kitchen_ceiling
+    data:
+      transition: 2
 - id: studio_presence_on
   alias: Studio · lamp on when someone is there and it's dark
   triggers:
@@ -144,11 +152,8 @@
     target:
       entity_id: light.studio_lamp
     data:
-      brightness_pct: 80
-      color_temp_kelvin: '{% set h = now().hour %}{{ 4000 if 6 <= h < 17 else 3000
-        if h < 21 else 2200 }}
-
-        '
+      brightness_pct: '{{ state_attr(''sensor.light_mode'', ''brightness_pct'') }}'
+      color_temp_kelvin: '{{ state_attr(''sensor.light_mode'', ''kelvin'') }}'
 - id: studio_presence_off
   alias: Studio · lights off when empty for 5 min
   triggers:
@@ -247,8 +252,8 @@
     target:
       entity_id: light.living_room_lights
     data:
-      brightness_pct: 70
-      color_temp_kelvin: 2700
+      brightness_pct: '{{ state_attr(''sensor.light_mode'', ''brightness_pct'') }}'
+      color_temp_kelvin: '{{ state_attr(''sensor.light_mode'', ''kelvin'') }}'
 - id: rice_cooker_timeout
   alias: Kitchen · rice cooker off after 90 min
   triggers:
@@ -311,7 +316,6 @@
     - event.living_room_wheel_button_9
     not_from:
     - unavailable
-    - unknown
     not_to:
     - unavailable
     - unknown
@@ -345,7 +349,6 @@
     - event.studio_wheel_button_9
     not_from:
     - unavailable
-    - unknown
     not_to:
     - unavailable
     - unknown
@@ -379,7 +382,6 @@
     - event.bedroom_wheel_button_9
     not_from:
     - unavailable
-    - unknown
     not_to:
     - unavailable
     - unknown
@@ -405,7 +407,6 @@
     - event.bedroom_dual_button_2
     not_from:
     - unavailable
-    - unknown
     not_to:
     - unavailable
     - unknown

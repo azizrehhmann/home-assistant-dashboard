@@ -12,20 +12,34 @@ script:
       kind: {description: "up | down | press"}
       ev: {description: event_type from the remote}
       scene: {description: scene for double-press}
+    variables:
+      dimmable: "{{ expand(target) | rejectattr('attributes.supported_color_modes', 'eq', ['onoff']) | map(attribute='entity_id') | list }}"
     sequence:
       - choose:
+          # press: off -> on at the time-of-day values (sensor.light_mode), on -> off
+          - conditions: "{{ kind == 'press' and ev == 'multi_press_1' and is_state(target, 'on') }}"
+            sequence:
+              - action: light.turn_off
+                target: {entity_id: "{{ target }}"}
+          - conditions: "{{ kind == 'press' and ev == 'multi_press_1' and state_attr(target, 'supported_color_modes') == ['onoff'] }}"
+            sequence:
+              - action: light.turn_on
+                target: {entity_id: "{{ target }}"}
           - conditions: "{{ kind == 'press' and ev == 'multi_press_1' }}"
             sequence:
-              - action: light.toggle
+              - action: light.turn_on
                 target: {entity_id: "{{ target }}"}
+                data:
+                  brightness_pct: "{{ state_attr('sensor.light_mode', 'brightness_pct') }}"
+                  color_temp_kelvin: "{{ state_attr('sensor.light_mode', 'kelvin') }}"
           - conditions: "{{ kind == 'press' and ev == 'multi_press_2' }}"
             sequence:
               - action: scene.turn_on
                 target: {entity_id: "{{ scene }}"}
-          # turning: skip on/off-only lights (the living room lamp is a plug)
-          - conditions: "{{ kind in ['up','down'] and ev.startswith('multi_press_') and state_attr(target,'supported_color_modes') != ['onoff'] }}"
+          # turning: dim only dimmable lights (the living room lamp is an on/off plug inside the room group)
+          - conditions: "{{ kind in ['up','down'] and ev.startswith('multi_press_') and dimmable | count > 0 }}"
             sequence:
               - action: light.turn_on
-                target: {entity_id: "{{ target }}"}
+                target: {entity_id: "{{ dimmable }}"}
                 data:
                   brightness_step_pct: "{{ (ev.split('_')[-1] | int) * 5 * (1 if kind == 'up' else -1) }}"

@@ -1,0 +1,101 @@
+# Time-of-day lighting: one table, used by every light.
+#   morning  05:00 → 1 h after sunrise        70 %  3000 K
+#   day      1 h after sunrise → 1 h before sunset   80 %  4000 K
+#   evening  1 h before sunset → 22:00        55 %  2700 K
+#   night    22:00 → 05:00                    25 %  2202 K (warmest the IKEA bulbs go)
+# Scenes, the wake-up light and the bedroom night button keep their own values.
+template:
+  - triggers:
+      - trigger: time_pattern
+        minutes: /1
+      - trigger: homeassistant
+        event: start
+      - trigger: event
+        event_type: event_template_reloaded
+    variables:
+      # sun up: next_rising is tomorrow, so "within 1 h after today's sunrise" = more than 23 h until the next one
+      mode: >-
+        {% set h = now().hour %}
+        {% set up = is_state('sun.sun', 'above_horizon') %}
+        {% set r = as_datetime(state_attr('sun.sun', 'next_rising')) %}
+        {% set s = as_datetime(state_attr('sun.sun', 'next_setting')) %}
+        {% if h >= 22 or h < 5 %}night
+        {% elif up and r - now() > timedelta(hours=23) %}morning
+        {% elif up and s - now() > timedelta(hours=1) %}day
+        {% elif up %}evening
+        {% elif h < 12 %}morning
+        {% else %}evening{% endif %}
+    sensor:
+      - name: Light mode
+        unique_id: light_mode
+        icon: mdi:theme-light-dark
+        state: "{{ mode }}"
+        attributes:
+          brightness_pct: "{{ {'morning': 70, 'day': 80, 'evening': 55, 'night': 25}[mode] }}"
+          kelvin: "{{ {'morning': 3000, 'day': 4000, 'evening': 2700, 'night': 2202}[mode] }}"
+
+automation:
+  - id: lights_time_of_day_on_turn_on
+    alias: Lights · match the time of day when turned on
+    description: >-
+      When a bulb is switched on by a person or device (dashboard, app, Alexa, IKEA, wall switch),
+      set it to the current sensor.light_mode values. Skips automation-made turn-ons and scenes.
+    mode: parallel
+    max: 30
+    triggers:
+      - trigger: state
+        entity_id: &bulbs
+          - light.kitchen_light_1
+          - light.kitchen_light_2
+          - light.kitchen_light_3
+          - light.studio_lamp_1
+          - light.studio_lamp_2
+          - light.studio_lamp_3
+          - light.studio_light
+          - light.bedside_lamp
+          - light.bedside_lamp_2
+          - light.bedroom_ceiling
+          - light.living_room_light_1
+          - light.living_room_light_2
+        from: ['off', 'unavailable']
+        to: 'on'
+    conditions:
+      - "{{ trigger.to_state.context.parent_id is none }}"
+      - alias: No scene activated in the last 5 s
+        condition: template
+        value_template: >-
+          {% set t = states.scene | map(attribute='state') | reject('in', ['unknown', 'unavailable']) | map('as_datetime') | list %}
+          {{ t | count == 0 or now() - (t | max) > timedelta(seconds=5) }}
+      - "{{ state_attr('sensor.light_mode', 'kelvin') is not none }}"
+    actions:
+      - action: light.turn_on
+        target:
+          entity_id: "{{ trigger.entity_id }}"
+        data:
+          brightness_pct: "{{ state_attr('sensor.light_mode', 'brightness_pct') }}"
+          color_temp_kelvin: "{{ state_attr('sensor.light_mode', 'kelvin') }}"
+          transition: 1
+
+  - id: lights_time_of_day_drift
+    alias: Lights · shift warmth when the time of day changes
+    description: Lights already on in white mode take the new colour temperature. Brightness and coloured lights are left alone.
+    triggers:
+      - trigger: state
+        entity_id: sensor.light_mode
+        not_from: ['unknown', 'unavailable']
+        not_to: ['unknown', 'unavailable']
+    variables:
+      bulbs: *bulbs
+      targets: >-
+        {{ expand(bulbs) | selectattr('state', 'eq', 'on')
+           | selectattr('attributes.color_mode', 'eq', 'color_temp')
+           | map(attribute='entity_id') | list }}
+    conditions:
+      - "{{ targets | count > 0 }}"
+    actions:
+      - action: light.turn_on
+        target:
+          entity_id: "{{ targets }}"
+        data:
+          color_temp_kelvin: "{{ state_attr('sensor.light_mode', 'kelvin') }}"
+          transition: 60
