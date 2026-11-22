@@ -1,22 +1,23 @@
 # Automations
 
-There are three tiers:
-- **Tier 1** is written and ready to install: `ha/packages/automations.yaml` (everyday) and `ha/packages/vacation_automations.yaml`.
-- **Tier 2** is the next round, once devices are paired and we know their real event names.
-- **Tier 3** needs devices you don't have yet (see `gaps.md`, next step).
+**Live since v0.11.0** (`ha/packages/automations.yaml` + `remotes.yaml`, deployed to `/config/packages/`). "Someone home" = `zone.home` (Aziz + Wifey), so nothing switches off while one of you is still in.
 
-**One rule for all of them:** every comfort automation has the condition *vacation mode is off*. Vacation mode pauses them without disabling anything, so nothing can be forgotten "off" after a trip.
-
-## Before installing: replace 3 placeholders
-| Placeholder | Where to find yours |
+| Automation | What happens |
 |---|---|
-| `notify.mobile_app_aziz_iphone` | Tools → Actions → type "mobile_app": your iPhone's notify action |
-| `person.aziz` | Settings → People: your person entity (the Companion app provides location) |
-| `REPLACE_WITH_…_ECHO_DEVICE_ID` (wake-up light) | Settings → Devices → the Echo → the device ID in the URL |
+| Lamps on at sunset | Sunset −15 min, someone home → living room lamp on, Studio lamp 60 % at 2700 K |
+| Weekday wake-up light | Mon–Fri, 20 min before the wake time: bedside lamp 1 % → 80 %, 2200 → 3500 K; at wake time the bathroom heats to 22 ° for 60 min. On/off + time on the dashboard (Home → Now) |
+| Balcony lights | Sunset on, 23:00 off (waits for the plug to be paired) |
+| Kitchen motion light | Motion → ceiling 100 % 4000 K (22:00–06:00: 15 % 2200 K); off 3 min after the motion stops |
+| Studio presence | Meross presence + below 150 lx → lamp on, warmth by time of day; empty 5 min → Studio lights off |
+| Washer done | Push to the iPhone; 08:00–22:00 and someone home → the Echo in the occupied room announces it |
+| Everyone left | Nobody home 5 min → all lights + rice cooker off, push if a door is open |
+| Welcome light | First person home after dark, living room off → living room 70 % at 2700 K |
+| Rice cooker | Off after 90 min, plus a push |
+| Balcony door | Open 2 min → living-room heating off; closed → back to the tado schedule (only if this automation turned it off) |
 
-The packages load from `/config/packages/` (deploy.md Phase A7). After copying: Tools → YAML → *Check configuration*, then *Automations* reload.
+**Remotes** (`remotes.yaml`): each scroll wheel has 3 channels: **1** whole room, **2** ceiling, **3** lamp. **Press** = on/off, **turn** = dim (5 % per click), **double-press** = room scene (Living → Movie, Studio → Focus, Bedroom → Night). Bedroom dual button: top = bedside lamps (hold = 10 % warm), bottom = Night. If turning feels reversed or the dual button's top/bottom are swapped, flip the marked `shortcut:` lines.
 
----
+Everything below is the original catalogue, kept for reference. Tier 1 automations not in the table above (tado slow refresh, movie mode on TV-on, air-quality push) are retired or parked: tado X replaced the refresh, the TV reports no state through Alexa, and the air-quality push wasn't chosen.
 
 ## Tier 1: everyday (ready)
 

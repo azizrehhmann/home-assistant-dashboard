@@ -1,0 +1,123 @@
+# IKEA BILRESA remotes (Matter event entities).
+# Scroll wheel: 3 channels x 3 buttons. Per channel: button A/B = turn steps (multi_press_N = N clicks),
+# button C = press (multi_press_1 single, multi_press_2 double).
+# Channel 1 = whole room, 2 = ceiling, 3 = lamp. Double-press = the room's scene.
+script:
+  remote_light:
+    alias: Remote · light action
+    mode: parallel
+    max: 30
+    fields:
+      target: {description: light entity}
+      kind: {description: "up | down | press"}
+      ev: {description: event_type from the remote}
+      scene: {description: scene for double-press}
+    sequence:
+      - choose:
+          - conditions: "{{ kind == 'press' and ev == 'multi_press_1' }}"
+            sequence:
+              - action: light.toggle
+                target: {entity_id: "{{ target }}"}
+          - conditions: "{{ kind == 'press' and ev == 'multi_press_2' }}"
+            sequence:
+              - action: scene.turn_on
+                target: {entity_id: "{{ scene }}"}
+          # turning: skip on/off-only lights (the living room lamp is a plug)
+          - conditions: "{{ kind in ['up','down'] and ev.startswith('multi_press_') and state_attr(target,'supported_color_modes') != ['onoff'] }}"
+            sequence:
+              - action: light.turn_on
+                target: {entity_id: "{{ target }}"}
+                data:
+                  brightness_step_pct: "{{ (ev.split('_')[-1] | int) * 5 * (1 if kind == 'up' else -1) }}"
+
+automation:
+  - id: remote_living_room_wheel
+    alias: Remote · Living room scroll wheel
+    mode: queued
+    max: 30
+    triggers:
+      - trigger: state
+        entity_id: [event.living_room_wheel_button_1, event.living_room_wheel_button_2, event.living_room_wheel_button_3,
+                    event.living_room_wheel_button_4, event.living_room_wheel_button_5, event.living_room_wheel_button_6,
+                    event.living_room_wheel_button_7, event.living_room_wheel_button_8, event.living_room_wheel_button_9]
+        not_from: [unavailable, unknown]
+        not_to: [unavailable, unknown]
+    variables: &wheel_vars
+      n: "{{ trigger.entity_id[-1] | int }}"
+      # shortcut: assumes button A of each channel is clockwise (brighter); swap 'up'/'down' if turning feels reversed
+      kind: "{{ ['up', 'down', 'press'][(n - 1) % 3] }}"
+      ev: "{{ trigger.to_state.attributes.event_type }}"
+    actions:
+      - action: script.remote_light
+        data:
+          target: "{{ ['light.living_room_lights', 'light.living_room_ceiling', 'light.living_room_lamp'][(n - 1) // 3] }}"
+          kind: "{{ kind }}"
+          ev: "{{ ev }}"
+          scene: scene.movie
+
+  - id: remote_studio_wheel
+    alias: Remote · Studio scroll wheel
+    mode: queued
+    max: 30
+    triggers:
+      - trigger: state
+        entity_id: [event.studio_wheel_button_1, event.studio_wheel_button_2, event.studio_wheel_button_3,
+                    event.studio_wheel_button_4, event.studio_wheel_button_5, event.studio_wheel_button_6,
+                    event.studio_wheel_button_7, event.studio_wheel_button_8, event.studio_wheel_button_9]
+        not_from: [unavailable, unknown]
+        not_to: [unavailable, unknown]
+    variables: *wheel_vars
+    actions:
+      - action: script.remote_light
+        data:
+          target: "{{ ['light.studio_lights', 'light.studio_light', 'light.studio_lamp'][(n - 1) // 3] }}"
+          kind: "{{ kind }}"
+          ev: "{{ ev }}"
+          scene: scene.focus
+
+  - id: remote_bedroom_wheel
+    alias: Remote · Bedroom scroll wheel
+    mode: queued
+    max: 30
+    triggers:
+      - trigger: state
+        entity_id: [event.bedroom_wheel_button_1, event.bedroom_wheel_button_2, event.bedroom_wheel_button_3,
+                    event.bedroom_wheel_button_4, event.bedroom_wheel_button_5, event.bedroom_wheel_button_6,
+                    event.bedroom_wheel_button_7, event.bedroom_wheel_button_8, event.bedroom_wheel_button_9]
+        not_from: [unavailable, unknown]
+        not_to: [unavailable, unknown]
+    variables: *wheel_vars
+    actions:
+      - action: script.remote_light
+        data:
+          target: "{{ ['light.bedroom_lights', 'light.bedroom_ceiling', 'light.bedside_lamps'][(n - 1) // 3] }}"
+          kind: "{{ kind }}"
+          ev: "{{ ev }}"
+          scene: scene.night
+
+  - id: remote_bedroom_dual_button
+    alias: Remote · Bedroom dual button
+    mode: queued
+    triggers:
+      - trigger: state
+        entity_id: [event.bedroom_dual_button_1, event.bedroom_dual_button_2]
+        not_from: [unavailable, unknown]
+        not_to: [unavailable, unknown]
+    variables:
+      ev: "{{ trigger.to_state.attributes.event_type }}"
+    actions:
+      # shortcut: assumes button 1 is the top button; swap the entity ids if it's the other way round
+      - choose:
+          - conditions: "{{ trigger.entity_id.endswith('_1') and ev == 'multi_press_1' }}"
+            sequence:
+              - action: light.toggle
+                target: {entity_id: light.bedside_lamps}
+          - conditions: "{{ trigger.entity_id.endswith('_1') and ev == 'long_press' }}"
+            sequence:
+              - action: light.turn_on
+                target: {entity_id: light.bedside_lamps}
+                data: {brightness_pct: 10, color_temp_kelvin: 2200}
+          - conditions: "{{ trigger.entity_id.endswith('_2') and ev == 'multi_press_1' }}"
+            sequence:
+              - action: scene.turn_on
+                target: {entity_id: scene.night}

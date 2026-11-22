@@ -429,6 +429,10 @@ function roomCard(r){
 }
 
 /* ---------- views ---------- */
+function wakeCard(){const w=LIVE.wake;if(!w)return '';
+  return `<div class="card glass"><h3>Wake-up light<span class="pill ${w.on?'ok':''}">${w.on?'Weekdays':'Off'}</span><button class="sw" data-wake aria-pressed="${w.on}" aria-label="Wake-up light" style="margin-left:8px"></button></h3>
+   <div class="kv" style="margin-top:12px"><span>${ic('sun')}Wake time</span><input type="time" id="wakeTime" value="${w.time}" aria-label="Wake time" style="padding:6px 10px;border-radius:12px;border:1px solid var(--hair);background:var(--hair);color:inherit;font:inherit"></div>
+   <p class="note" style="margin:8px 0 0">Mon–Fri the bedside lamp fades up like a sunrise over the 20 minutes before this time, then the bathroom heats to 22°.</p></div>`}
 function vHome(){
   const h=new Date().getHours(), g=h<5?'Good night':h<12?'Good morning':h<18?'Good afternoon':'Good evening';
   const fav=['light.living_room_light_1','light.studio_lamp','light.bedside_lamp','light.tv_lights','light.kitchen_ceiling','switch.rice_cooker'];
@@ -437,7 +441,7 @@ function vHome(){
    <section class="sec"><h2>Scenes ${allSeg('*')}</h2>${scenes()}</section>
    <section class="sec"><h2>Favourites</h2><div class="tiles">${fav.map(lightTile).join('')}</div></section>
    <section class="sec"><h2>Rooms</h2><div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">${ROOMS.map(roomCard).join('')}</div></section>
-   <section class="sec"><h2>Now</h2><div class="grid">${washerCard()}${vacuumCompact()}</div></section>`;
+   <section class="sec"><h2>Now</h2><div class="grid">${wakeCard()}${washerCard()}${vacuumCompact()}</div></section>`;
 }
 function vRooms(){
   return head('Rooms',`${lightsOn().length} lights on across ${ROOMS.length} rooms`)+
@@ -934,6 +938,7 @@ const LIVE=(()=>{
         robotEvery:Math.round(num('input_number.vacation_robot_every_days')||3),robotTime:(st('input_datetime.vacation_robot_time')?.state||'11:00').slice(0,5),
         alerts:on('security_alerts'),preheat:on('preheat'),preheatH:Math.round(num('input_number.vacation_preheat_hours')||3),sim:on('presence_simulation'),humidity:on('humidity_alerts')})}
     const wx=st(Object.keys(H().states).find(k=>k.startsWith('weather.')));
+    {const wb=st('input_boolean.wake_up_enabled'),wt=st('input_datetime.wake_time');L.wake=ok(wb)?{on:wb.state==='on',time:ok(wt)?wt.state.slice(0,5):'07:00'}:null}
     L.wx=ok(wx)?{t:Math.round(wx.attributes.temperature),c:({partlycloudy:'Partly cloudy','clear-night':'Clear night',lightning:'Thunderstorm','lightning-rainy':'Thunderstorm','snowy-rainy':'Sleet'})[wx.state]||wx.state.replace(/[-_]/g,' ').replace(/^./,c=>c.toUpperCase())}:null;
     return true};
   // send what a click changed (lights, plugs, heating) by diffing against the last state Home Assistant reported
@@ -962,6 +967,7 @@ const LIVE=(()=>{
       e.preset=d.cmode;L.snap[d.room]=snapOf(e);render();toast(`${e.name}: ${d.cmode==='Boost'?'boost for 30 min':d.cmode==='Off'?'heating off':'back on schedule'}`);return true}
     if(d.tado){call('button','press',{entity_id:`button.home_${{boost:'boost_all',off:'turn_off_all',resume:'resume_schedules'}[d.tado]}`});
       toast({boost:'Boosting all rooms',off:'Heating off in all rooms',resume:'All rooms back on schedule'}[d.tado]);return true}
+    if('wake' in d){L.wake.on=!L.wake.on;call('input_boolean',L.wake.on?'turn_on':'turn_off',{entity_id:'input_boolean.wake_up_enabled'});toast(L.wake.on?`Wake-up light on · ${L.wake.time} on weekdays`:'Wake-up light off');render();return true}
     if('wpower' in d){const w=S['sensor.washer'];w.power=!w.power;call('switch',w.power?'turn_on':'turn_off',{entity_id:'switch.kitchen_washing_machine_power'});toast(w.power?'Washer on':'Washer off');render();return true}
     if(d.wprog){call('select','select_option',{entity_id:'select.kitchen_washing_machine_selected_program',option:d.wprog});S['sensor.washer'].selected=d.wprog;render();return true}
     if(d.wash){const w=S['sensor.washer'];
@@ -985,8 +991,9 @@ const LIVE=(()=>{
     return false};
   let busy=0;addEventListener('pointerdown',()=>busy=Infinity,true);addEventListener('pointerup',()=>busy=Date.now()+600,true);addEventListener('pointercancel',()=>busy=0,true);
   // shortcut: polls the parent's hass object once a second instead of subscribing; fine for one dashboard, switch to subscribeEntities if it ever feels laggy.
+  document.addEventListener('change',e=>{if(e.target.id==='wakeTime'&&e.target.value){L.wake.time=e.target.value;call('input_datetime','set_datetime',{entity_id:'input_datetime.wake_time',time:e.target.value+':00'});toast(`Wake time ${e.target.value}`)}});
   let sheetRef=null;
-  setInterval(()=>{if(Date.now()>busy&&!document.activeElement?.matches('input[type=text]')&&L.pull()){render();if(T3.ready)T3.sync();
+  setInterval(()=>{if(Date.now()>busy&&!document.activeElement?.matches('input[type=text],input[type=time]')&&L.pull()){render();if(T3.ready)T3.sync();
     if(sheetId&&sheetId!=='vacation'&&H().states[sheetId]!==sheetRef){sheetRef=H().states[sheetId];if(!document.activeElement?.closest('#sheet input'))drawSheet()}}},1000);
   L.pull();return L;
 })();

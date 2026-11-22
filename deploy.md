@@ -223,6 +223,14 @@ The dashboard and packages use these IDs. For each one: Settings → Entities �
 
 ---
 
+## Phase F2: Alexa voice control (HA Cloud) (done 2026-11-22)
+1. [x] HA Cloud subscription active; a core restart was needed so the cloud connection starts.
+2. [x] Auto-expose of new entities is **off**. Exposed to Alexa (21): room light groups, Kitchen light, Studio lamp, Bedside lamps, Rice cooker, scenes Morning / Focus mode / Movie mode / Night mode, Away mode, Robot, the four "… heating" thermostats, Wake-up light. Names set in the entity registry so they're easy to say.
+3. [ ] **Alexa app** → More → Skills & games → search **Home Assistant** → Enable → sign in with the HA Cloud account → **Discover devices**.
+4. [ ] Delete old IKEA/DIRIGERA devices in the Alexa app that no longer work, so names don't clash.
+- Try: "Alexa, turn on the studio lamp", "Alexa, turn on movie mode", "Alexa, set bedroom heating to 21 degrees", "Alexa, start Robot".
+- To add something later: Settings → Voice assistants → Expose.
+
 ## Phase G: final check
 
 - [ ] Every row in the Phase D table exists and is in the right area (Settings → Areas).
