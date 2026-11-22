@@ -15,7 +15,7 @@ Confirmed with Aziz on 2026-11-21. Each physical device listed once (many also a
 | Living | Air Quality Monitor — **offline, re-pair first** | IKEA → Matter |
 | Living | Living room lamp | Wi-Fi (Tuya or Tapo) |
 | Living | TV lights — Govee LED strip behind TV | Govee lights local (LAN) / Govee cloud fallback |
-| Living | Hisense TV (VIDAA OS) | VIDAA integration needs a Hisense client certificate (not pursued); route: Alexa text commands or an IR blaster |
+| Living | Hisense TV (VIDAA OS) | Controlled via Alexa (`alexa_devices.send_text_command` on the living-room Echo): off/volume work; power-**on** needs the TV's Quick Start / network-standby setting, else an IR blaster. VIDAA integration needs Hisense's client cert (TV rejects any other), so not pursued. |
 | Living | Philips soundbar HTL3320/10 ("Living Room Play-Fi") | TBC: Play-Fi / DLNA / Alexa; Bluetooth fallback |
 | Living | Echo Dot | Alexa Devices |
 | Kitchen | Kitchen ceiling light | IKEA → Matter |

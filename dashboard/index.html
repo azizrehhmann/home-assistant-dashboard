@@ -539,7 +539,7 @@ function vAppliances(){
      <p class="note" style="margin:10px 0">Kitchen · Wi-Fi plug. Auto-off after 90 minutes is planned as an automation.</p>
      <button class="btn ${rc.on?'':'primary'}" data-toggle="switch.rice_cooker">${rc.on?'Turn off':'Turn on'}</button></div>
    <div class="card glass"><h3>Living room media</h3>
-     <div class="kv"><span>${ic('tv')}Hisense TV</span><span class="pill bad">Unresponsive</span></div>
+     <div class="kv"><span>${ic('tv')}Hisense TV${LIVE.on?' · via Alexa':''}</span>${LIVE.on?`<span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn small" data-tv="off">Off</button><button class="btn small" data-tv="on">On</button><button class="btn small" data-tv="voldown">Vol −</button><button class="btn small" data-tv="volup">Vol +</button></span>`:'<span class="pill bad">Unresponsive</span>'}</div>
      <div class="kv"><span>${ic('speaker')}Philips HTL3320</span><b>${S['media_player.soundbar'].on?'On':'Standby'}</b></div>
      <div class="kv"><span>${ic('strip')}Govee TV lights</span><button class="btn small" data-adjust="light.tv_lights">${S['light.tv_lights'].on?S['light.tv_lights'].bri+'% · colour':'Off · adjust'}</button></div>
      <div class="row" style="margin-top:12px"><button class="btn primary" data-scene="movie">Movie mode</button></div></div>
@@ -963,6 +963,9 @@ const LIVE=(()=>{
       if(d.wash==='start'){if(!w.selected)return toast('Pick a program first'),true;call('select','select_option',{entity_id:'select.kitchen_washing_machine_active_program',option:w.selected});toast(`Starting ${progName(w.selected)}`)}
       else call('button','press',{entity_id:`button.kitchen_washing_machine_${d.wash}_program`}),toast({stop:'Stopping the washer',pause:'Pausing',resume:'Resuming'}[d.wash]);
       return true}
+    if(d.tv){const dev='5c1cc20b821f547aa2b140387426c229'; // shortcut: living-room Echo device id; update if that Echo is re-paired
+      const cmd={on:'turn on the TV',off:'turn off the TV',volup:'turn up the volume on the TV',voldown:'turn down the volume on the TV'}[d.tv];
+      call('alexa_devices','send_text_command',{device_id:dev,text_command:cmd});toast(`TV: ${{on:'on',off:'off',volup:'volume up',voldown:'volume down'}[d.tv]} · spoken by Alexa`);return true}
     if(d.announce){const t=document.getElementById('annText'),msg=t?.value.trim();if(!msg)return toast('Type a message first'),t?.focus(),true;
       const to=d.announce==='all'?Object.keys(S).filter(k=>k.startsWith('media_player.echo')):[d.announce];
       to.forEach(k=>call('notify','send_message',{entity_id:k.replace('media_player.','notify.')+'_announce',message:msg}));t.value='';toast(`Announced on ${to.length>1?'all Echo Dots':S[to[0]].name}`);return true}
