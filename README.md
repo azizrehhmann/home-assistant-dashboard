@@ -11,7 +11,8 @@ Rebuilding a flat's smart home on Home Assistant (HA Green) with a liquid-glass,
 - `ha/themes/liquid_glass.yaml`: light/dark theme in the mock's colours (blur via card-mod).
 - **Live dashboard:** `dashboard/index.html` doubles as the real dashboard. Inside Home Assistant (the "Liquid Glass" Webpage dashboard) it reads and controls real entities; opened on its own it shows mock data. Publish with `python3 tools/deploy_dashboard.py`.
 - `ha/dashboards/home.yaml`: fallback dashboard with built-in cards only.
-- `ha/packages/`: helpers for vacation mode and Roborock room cleaning, scenes, plus ready-to-install automations (`automations.yaml`, `vacation_automations.yaml`).
+- `ha/automations.yaml`: snapshot of the live automations. Home Assistant is the master copy (edit them in the dashboard's Automations tab or HA's editor); refresh with `tools/pull_automations.sh`.
+- `ha/packages/`: helpers (vacation, wake-up light, Roborock rooms), scenes, the remote script, and `vacation_automations.yaml` (not installed yet).
 - `automations.md`: catalogue of every automation (ready, next round, needs new devices) with test steps.
 
 - `tools/`: `ha.py` (send one websocket command to HA), `deploy_dashboard.py` (publish the dashboard, with placeholders for unpaired devices), `dirigera_pair.py` (pair with the IKEA hub API).

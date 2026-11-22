@@ -223,6 +223,7 @@ h2 .end{margin-left:auto}
   .tabbar{display:flex;position:fixed;z-index:40;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));
     bottom:calc(12px + env(safe-area-inset-bottom,0px));justify-content:space-around;padding:6px;border-radius:30px}
   .tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px;border-radius:22px;font-size:10.5px;font-weight:600;color:var(--fg-2);text-decoration:none;min-width:0}
+  .tabbar a span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tabbar a[aria-current="page"]{background:var(--glass-strong);color:var(--accent)}
   .toast{bottom:calc(100px + env(safe-area-inset-bottom,0px))}
   .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -233,6 +234,11 @@ h2 .end{margin-left:auto}
 @keyframes pulse{50%{opacity:.35}}
 .pulse{animation:pulse 1.6s ease-in-out infinite}
 .note{font-size:12.5px;color:var(--fg-3)}
+.arow{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--hair)}.arow:first-child{border-top:0;padding-top:0}.arow:last-child{padding-bottom:0}
+.arow .atx{flex:1;min-width:0;display:grid;gap:3px}.arow .atx small{color:var(--fg-2);font-size:13px;line-height:1.35}.arow .aact{display:flex;align-items:center;gap:6px;flex:none}
+.afield{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--hair);font-size:14px}.afield .vin{margin:0;width:auto;max-width:150px}.afield.full{grid-template-columns:1fr}.afield.full .vin{max-width:none;width:100%}
+.astep{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;margin-top:8px}.astep .vin{margin:0;min-width:0}.astep .more{grid-column:1/-1;display:flex;gap:8px}
+@media (max-width:520px){.arow{flex-wrap:wrap}.arow .atx{flex-basis:100%}.arow .aact{margin-left:auto}}
 </style>
 
 <div class="app">
@@ -277,6 +283,7 @@ const P={
  washer:'<rect x="4" y="2.5" width="16" height="19" rx="3"/><circle cx="12" cy="13" r="4.5"/>',
  sliders:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
  suitcase:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/>',
+ flow:'<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 6H15a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h6.5"/>',
  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
  lux:'<circle cx="12" cy="12" r="3.5"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
 };
@@ -327,7 +334,7 @@ const ROOMS=[
  {id:'kitchen',name:'Kitchen',m2:6.7},{id:'bathroom',name:'Bathroom',m2:5.3},{id:'hallway',name:'Hallway',m2:6.4},{id:'balcony',name:'Balcony',m2:5.1}];
 const VAC_ROOMS=['living','studio','bedroom','kitchen','hallway','bathroom'];
 const FANS=['Quiet','Balanced','Turbo','Max','Max+'];
-const VIEWS=[['home','Home','home'],['rooms','Rooms','rooms'],['climate','Climate','climate'],['appliances','Appliances','appl'],['security','Security','shield'],['3d','3D Home','cube']];
+const VIEWS=[['home','Home','home'],['rooms','Rooms','rooms'],['climate','Climate','climate'],['appliances','Appliances','appl','Devices'],['security','Security','shield'],['automations','Automations','flow','Auto'],['3d','3D Home','cube','3D']];
 const VAC='vacuum.roborock_q5_pro';
 
 const ids=(pre,area)=>Object.keys(S).filter(k=>k.startsWith(pre)&&(!area||S[k].area===area));
@@ -584,14 +591,14 @@ const fallbackPlan=()=>{const lit=(a)=>lightsOn(a).length?'lit':'';return `<svg 
  <rect class="rm ${lit('hallway')}" x="280" y="340" width="290" height="85" rx="6"/><text x="425" y="388" text-anchor="middle">Hallway</text>
  <rect class="rm ${lit('kitchen')}" x="280" y="425" width="150" height="145" rx="6"/><text x="355" y="500" text-anchor="middle">Kitchen</text>
  <rect class="rm ${lit('bathroom')}" x="430" y="425" width="140" height="145" rx="6"/><text x="500" y="500" text-anchor="middle">Bathroom</text></svg>`};
-const RENDER={home:vHome,rooms:vRooms,climate:vClimate,appliances:vAppliances,security:vSecurity,'3d':v3d};
+const RENDER={home:vHome,rooms:vRooms,climate:vClimate,appliances:vAppliances,security:vSecurity,automations:vAutomations,'3d':v3d};
 
 /* ---------- shell + routing ---------- */
 let view='home';
 function nav(){
   const link=(id,n,i)=>`<a class="nav" href="#${id}" ${id===view?'aria-current="page"':''}>${ic(i)}<span>${n}</span></a>`;
   document.getElementById('side').innerHTML=`<div class="brand"><span>${ic('home')}</span>Aziz Home</div>${VIEWS.map(v=>link(...v)).join('')}<div class="foot"><span>Appearance</span>${themeSeg()}<span>${typeof LIVE!=='undefined'&&LIVE.on?'Live · Home Assistant':'Mock data · Home Assistant preview'}</span></div>`;
-  document.getElementById('tabbar').innerHTML=VIEWS.map(([id,n,i])=>`<a href="#${id}" ${id===view?'aria-current="page"':''}>${ic(i)}<span>${n}</span></a>`).join('');
+  document.getElementById('tabbar').innerHTML=VIEWS.map(([id,n,i,sh])=>`<a href="#${id}" ${id===view?'aria-current="page"':''} aria-label="${n}">${ic(i)}<span>${sh||n}</span></a>`).join('');
 }
 function render(){nav();document.getElementById('main').innerHTML=vacBanner()+RENDER[view]();tick();if(view==='3d')mount3d();else T3.stop?.();}
 function route(){const h=location.hash.slice(1);view=RENDER[h]?h:'home';render();window.scrollTo(0,0)}
@@ -653,6 +660,7 @@ function endVac(){const V=S[VAC_ID],was=V.on;V.on=false;V.scheduled=false;ids('l
 
 function drawSheet(){
   if(sheetId==='vacation')return drawVac();
+  if(sheetId.startsWith('auto:'))return drawAuto();
   const e=S[sheetId],g=glow(e);
   document.getElementById('sheet').style.setProperty('--glow',g||'var(--on-warm)');
   document.getElementById('sheet').innerHTML=`
@@ -896,6 +904,7 @@ const LIVE=(()=>{
   const num=(id)=>{const s=st(id);return ok(s)?+s.state:null};
   const pend={};const held=(id)=>pend[id]&&Date.now()<pend[id].until&&H().states[id]===pend[id].ref;
   const snapOf=(e)=>({on:e.on,bri:e.bri,kelvin:e.kelvin,rgb:e.rgb,target:e.target,preset:e.preset});
+  Object.assign(L,{H,st,call,ago});
   L.pull=()=>{
     if(H().states===L.last)return false;L.last=H().states;
     if(Object.keys(seen).length&&Object.entries(seen).every(([id,o])=>H().states[id]===o))return false;
@@ -994,8 +1003,201 @@ const LIVE=(()=>{
   document.addEventListener('change',e=>{if(e.target.id==='wakeTime'&&e.target.value){L.wake.time=e.target.value;call('input_datetime','set_datetime',{entity_id:'input_datetime.wake_time',time:e.target.value+':00'});toast(`Wake time ${e.target.value}`)}});
   let sheetRef=null;
   setInterval(()=>{if(Date.now()>busy&&!document.activeElement?.matches('input[type=text],input[type=time]')&&L.pull()){render();if(T3.ready)T3.sync();
-    if(sheetId&&sheetId!=='vacation'&&H().states[sheetId]!==sheetRef){sheetRef=H().states[sheetId];if(!document.activeElement?.closest('#sheet input'))drawSheet()}}},1000);
+    if(sheetId&&S[sheetId]&&H().states[sheetId]!==sheetRef){sheetRef=H().states[sheetId];if(!document.activeElement?.closest('#sheet input'))drawSheet()}}},1000);
   L.pull();return L;
 })();
+/* ---------- automations: see, tweak and create (live only; HA's automations.yaml is the master copy) ---------- */
+const AU={cfg:{},loaded:0,loading:false,draft:null,eid:null,fields:[],nb:null,del:false};
+const DOW=[['mon','Mon'],['tue','Tue'],['wed','Wed'],['thu','Thu'],['fri','Fri'],['sat','Sat'],['sun','Sun']];
+const auApi=(m,id,body)=>LIVE.H().callApi(m,'config/automation/config/'+id,body);
+const auErr=(e)=>toast('Home Assistant: '+(e?.body?.message||e?.message||e?.error||'could not save'));
+const fname=(id)=>typeof id!=='string'||id.includes('{')?'the chosen device':LIVE.H().states[id]?.attributes?.friendly_name||(id.split('.')[1]||id).replace(/_/g,' ').replace(/^./,c=>c.toUpperCase());
+const names=(x)=>[].concat(x||[]).map(fname).join(', ');
+const hms=(v)=>typeof v==='number'?null:typeof v==='string'?v:v&&typeof v==='object'?[v.hours||0,v.minutes||0,v.seconds||0].map(n=>String(n).padStart(2,'0')).join(':'):null;
+const toMin=(v)=>{const s=hms(v);if(!s||!/^-?\d+:\d+(:\d+)?$/.test(s))return null;const neg=s[0]==='-',[h,m,x=0]=s.replace('-','').split(':').map(Number);return (neg?-1:1)*Math.round(h*60+m+x/60)};
+const fromMin=(n)=>{const a=Math.abs(Math.round(n));return (n<0?'-':'')+String(Math.floor(a/60)).padStart(2,'0')+':'+String(a%60).padStart(2,'0')+':00'};
+const minTxt=(n)=>n>=60&&n%60===0?`${n/60} h`:`${n} min`;
+const hm=(v)=>/^\d/.test(v||'')?v.slice(0,5):fname(v);
+const daysTxt=(d)=>{const k=[].concat(d).join();return k==='mon,tue,wed,thu,fri'?'on weekdays':k==='sat,sun'?'at weekends':'on '+[].concat(d).map(x=>x[0].toUpperCase()+x.slice(1)).join(', ')};
+const list=(k)=>[].concat(k||[]);
+
+function auWhen(t){const k=t.trigger||t.platform;
+  if(k==='sun'){const o=toMin(t.offset||'0:0')||0;return o?`${minTxt(Math.abs(o))} ${o<0?'before':'after'} ${t.event}`:`at ${t.event}`}
+  if(k==='time'){if(typeof t.at==='string')return 'at '+hm(t.at);const o=toMin(t.at?.offset||'0:0')||0;return `${o?minTxt(Math.abs(o))+(o<0?' before ':' after '):'at '}${fname(t.at?.entity_id)}`}
+  if(k==='state'){const id=list(t.entity_id)[0];
+    if(id==='zone.home')return t.to==='0'?'everyone has left':t.from==='0'?'someone gets home':'people at home change';
+    const dc=LIVE.H().states[id]?.attributes?.device_class,
+      on={door:'opens',window:'opens',opening:'opens',motion:'detects motion',occupancy:'detects someone',presence:'detects someone'}[dc],
+      off={door:'closes',window:'closes',opening:'closes',motion:'is clear',occupancy:'is empty',presence:'is empty'}[dc];
+    const what=dc==='button'||id?.startsWith('event.')?'is used':t.to==='on'?(on||'turns on'):t.to==='off'?(off||'turns off'):t.to?`is ${t.to}`:'changes';
+    const f=toMin(t.for);return `${fname(id)} ${what}${f?` for ${minTxt(f)}`:''}`}
+  if(k==='numeric_state')return `${names(t.entity_id)} goes${t.above!=null?' above '+t.above:''}${t.below!=null?' below '+t.below:''}`;
+  return 'a custom trigger fires'}
+function auIf(c){const k=c.condition,id=c.entity_id;
+  if(k==='state'&&id==='input_boolean.vacation_mode')return c.state==='off'?'not on vacation':'on vacation';
+  if(k==='numeric_state'&&id==='zone.home')return c.above!=null?'someone is home':'nobody is home';
+  if(k==='state'&&id==='sun.sun')return c.state==='below_horizon'?"it's dark":"it's light";
+  if(k==='time'){const p=[];if(c.weekday)p.push(daysTxt(c.weekday));if(c.after)p.push('after '+hm(c.after));if(c.before)p.push('before '+hm(c.before));return p.join(' ')}
+  if(k==='numeric_state')return `${names(id)}${c.below!=null?' below '+c.below:''}${c.above!=null?' above '+c.above:''}`;
+  if(k==='state')return `${names(id)} is ${c.state}`;
+  return 'a custom check passes'}
+function auDo(a){const s=a.action||'',tg=names(a.target?.entity_id||a.entity_id||a.data?.entity_id),d=a.data||{};
+  if(s==='light.turn_on')return `${tg} on${typeof d.brightness_pct==='number'?' '+d.brightness_pct+'%':''}${typeof d.color_temp_kelvin==='number'?' '+d.color_temp_kelvin+' K':''}`;
+  if(s==='scene.turn_on')return `scene ${tg}`;
+  if(s.endsWith('.turn_off'))return `${tg} off`;if(s.endsWith('.turn_on'))return `${tg} on`;if(s.endsWith('.toggle'))return `toggle ${tg}`;
+  if(s==='notify.send_message')return `announce on ${tg}`;if(s.startsWith('notify.'))return 'push to the iPhone';
+  if(s==='climate.set_hvac_mode')return `${tg} ${d.hvac_mode==='auto'?'back to schedule':d.hvac_mode}`;
+  if(s==='tado_x.set_climate_timer')return `${tg} to ${d.temperature}° for ${minTxt(d.duration)}`;
+  if(s.startsWith('script.'))return `run ${fname(s)}`;
+  if(a.delay!=null)return typeof a.delay==='number'?`wait ${a.delay} s`:toMin(a.delay)?`wait ${minTxt(toMin(a.delay))}`:'wait a moment';if(a.wait_for_trigger)return 'then wait';
+  if(a.if)return list(a.then).map(auDo).filter(Boolean).join(', ')+(a.else?' (or '+list(a.else).map(auDo).filter(Boolean).join(', ')+')':'');
+  if(a.choose)return 'depends on the situation';return null}
+function auDescribe(c){const tr=list(c.triggers),co=list(c.conditions),ac=list(c.actions);
+  const w=(tr.length?auWhen(tr[0]):'run by hand')+(tr.length>1?` (+${tr.length-1} more)`:'');
+  const i=co.map(auIf).filter(Boolean),dd=ac.map(auDo).filter(Boolean);
+  return `When ${w}${i.length?', if '+i.join(' and '):''} → ${dd.slice(0,3).join(', ')||'custom steps'}${dd.length>3?' …':''}`}
+
+/* editable fields: every common, non-template value in the config, bound to its path */
+function auFields(c){const F=[],add=(label,path,type,val)=>F.push({label,path,type,val});
+  add('Name',['alias'],'text',c.alias||'');
+  list(c.triggers).forEach((t,i)=>{const p=['triggers',i],k=t.trigger;
+    if(k==='sun')add(`Minutes from ${t.event} (− = before)`,[...p,'offset'],'offset',toMin(t.offset||'0:0')||0);
+    if(k==='time'&&typeof t.at==='string'&&/^\d/.test(t.at))add('Time',[...p,'at'],'time',t.at.slice(0,5));
+    if(k==='time'&&t.at?.offset!=null)add(`Minutes from ${fname(t.at.entity_id)} (− = before)`,[...p,'at','offset'],'offset',toMin(t.at.offset)||0);
+    if(t.for!=null&&toMin(t.for)!=null)add(`${fname(list(t.entity_id)[0])}: for (min)`,[...p,'for'],'minutes',toMin(t.for));
+    for(const x of ['above','below'])if(k==='numeric_state'&&typeof t[x]==='number')add(`${names(t.entity_id)}: ${x}`,[...p,x],'num',t[x]);});
+  const conds=(cs,p,pre)=>list(cs).forEach((c,i)=>{const q=[...p,i];
+    if(c.condition==='time'){if(c.weekday)add(`${pre}Days`,[...q,'weekday'],'days',list(c.weekday));
+      for(const x of ['after','before'])if(/^\d/.test(c[x]||''))add(`${pre}${x==='after'?'After':'Before'}`,[...q,x],'time',c[x].slice(0,5))}
+    if(c.condition==='numeric_state'&&c.entity_id!=='zone.home')for(const x of ['above','below'])if(typeof c[x]==='number')add(`${pre}${names(c.entity_id)} ${x}`,[...q,x],'num',c[x]);
+    if(c.for!=null&&toMin(c.for)!=null)add(`${pre}${names(c.entity_id)} for (min)`,[...q,'for'],'minutes',toMin(c.for));});
+  conds(c.conditions,['conditions'],'Only if · ');
+  const acts=(as,p,pre)=>list(as).forEach((a,i)=>{const q=[...p,i],d=a.data||{},tg=names(a.target?.entity_id||a.entity_id);
+    if(a.action==='light.turn_on'){if(typeof d.brightness_pct==='number')add(`${pre}${tg} brightness %`,[...q,'data','brightness_pct'],'num',d.brightness_pct);
+      if(typeof d.color_temp_kelvin==='number')add(`${pre}${tg} warmth K`,[...q,'data','color_temp_kelvin'],'num',d.color_temp_kelvin);
+      if(typeof d.transition==='number')add(`${pre}${tg} fade (s)`,[...q,'data','transition'],'num',d.transition)}
+    if(a.action==='tado_x.set_climate_timer'){if(typeof d.temperature==='number')add(`${pre}${tg} °C`,[...q,'data','temperature'],'num',d.temperature);if(typeof d.duration==='number')add(`${pre}${tg} for (min)`,[...q,'data','duration'],'num',d.duration)}
+    if(a.action?.startsWith('notify.')&&typeof d.message==='string'&&!d.message.includes('{'))add(`${pre}Message`,[...q,'data','message'],'text',d.message);
+    if(a.delay!=null&&toMin(a.delay)!=null)add(`${pre}Wait (min)`,[...q,'delay'],'minutes',toMin(a.delay));
+    if(a.wait_for_trigger)list(a.wait_for_trigger).forEach((t,j)=>{if(t.for!=null&&toMin(t.for)!=null)add(`${pre}Wait until ${fname(list(t.entity_id)[0])} ${t.to==='off'?'clear':'changes'} for (min)`,[...q,'wait_for_trigger',j,'for'],'minutes',toMin(t.for))});
+    if(a.timeout!=null&&toMin(a.timeout)!=null)add(`${pre}Give up after (min)`,[...q,'timeout'],'minutes',toMin(a.timeout));
+    if(a.if){conds(a.if,[...q,'if'],'If · ');acts(a.then,[...q,'then'],'Then · ');acts(a.else,[...q,'else'],'Otherwise · ')}
+    if(a.sequence)acts(a.sequence,[...q,'sequence'],pre);});
+  acts(c.actions,['actions'],'Do · ');
+  return F}
+const setPath=(o,p,v)=>{let x=o;for(const k of p.slice(0,-1))x=x[k]??={};x[p.at(-1)]=v};
+function auSet(f,raw){const v={text:()=>raw,time:()=>raw+':00',offset:()=>fromMin(+raw||0),minutes:()=>fromMin(Math.max(0,+raw||0)),num:()=>+raw,days:()=>raw}[f.type]();setPath(AU.draft,f.path,v);f.val=raw}
+
+function vAutomations(){
+  if(!LIVE.on)return head('Automations','Schedules and automations')+`<div class="card glass"><p class="note" style="margin:0">Open this dashboard inside Home Assistant to see, change and create automations.</p></div>`;
+  const H=LIVE.H(),admin=H.user?.is_admin!==false;
+  if(!AU.loading&&Date.now()-AU.loaded>60000)auLoad();
+  const all=Object.keys(H.states).filter(k=>k.startsWith('automation.')).map(LIVE.st).sort((a,b)=>(a.attributes.friendly_name||'').localeCompare(b.attributes.friendly_name||''));
+  const groups={};for(const s of all){const n=s.attributes.friendly_name||s.entity_id,id=s.attributes.id||'';
+    const g=n.includes(' · ')&&!id.startsWith('dash_')?n.split(' · ')[0]:'Yours';(groups[g]??=[]).push(s)}
+  const order=['Yours','Schedule','Presence','Kitchen','Studio','Living room','Washer','Remote'];
+  const keys=Object.keys(groups).sort((a,b)=>((order.indexOf(a)+99)%99)-((order.indexOf(b)+99)%99)||a.localeCompare(b));
+  const row=(s)=>{const n=s.attributes.friendly_name||s.entity_id,id=s.attributes.id,c=AU.cfg[id],on=s.state==='on',last=s.attributes.last_triggered;
+    const sum=c?auDescribe(c):id?(AU.loading?'Loading…':'Couldn\'t load this one'):'Written in YAML, so edit it in Home Assistant';
+    return `<div class="arow"><div class="atx"><b>${esc((n.includes(' · ')?n.split(' · ').slice(1).join(' · '):n).replace(/^./,c=>c.toUpperCase()))}</b><small>${esc(sum)}</small><span class="note">${last?'Last ran '+LIVE.ago(last):'Hasn\'t run yet'}</span></div>
+     <div class="aact"><button class="btn small" data-au="run" data-aid="${s.entity_id}" ${admin?'':'disabled'}>Run</button>${id&&admin?`<button class="btn small" data-au="edit" data-aid="${esc(id)}">Edit</button>`:''}<button class="sw" data-au="tog" data-aid="${s.entity_id}" aria-pressed="${on}" aria-label="${esc(n)}" ${admin?'':'disabled'}></button></div></div>`};
+  const on=all.filter(s=>s.state==='on').length;
+  return head('Automations',`${on} of ${all.length} on`,admin?`<button class="btn primary" data-au="new">${ic('flow','sm')} New</button>`:'')+
+   (admin?'':`<div class="card glass" style="margin-bottom:16px"><p class="note" style="margin:0">View only: sign in to Home Assistant as an administrator to change automations.</p></div>`)+
+   keys.map(g=>`<section class="sec"><h2>${esc(g)}</h2><div class="card glass">${groups[g].map(row).join('')}</div></section>`).join('')}
+function auLoad(){AU.loading=true;const ids=Object.values(LIVE.H().states).filter(s=>s.entity_id.startsWith('automation.')&&s.attributes.id).map(s=>s.attributes.id);
+  Promise.all(ids.map(id=>auApi('GET',id).then(c=>{AU.cfg[id]=c},()=>{}))).then(()=>{AU.loading=false;AU.loaded=Date.now();if(view==='automations'&&!sheetId)render()})}
+
+function drawAuto(){
+  if(sheetId==='auto:new')return drawBuilder();
+  const c=AU.draft,F=AU.fields,el=document.getElementById('sheet');el.style.setProperty('--glow','var(--accent)');
+  const input=(f,i)=>f.type==='days'?`<div class="toggles" style="justify-content:flex-end">${DOW.map(([k,n])=>`<button class="tog" data-au="day" data-ai="${i}" data-day="${k}" aria-pressed="${f.val.includes(k)}">${n}</button>`).join('')}</div>`
+    :`<input class="vin" data-af="${i}" type="${f.type==='text'?'text':f.type==='time'?'time':'number'}" ${f.type==='minutes'?'min="0"':''} value="${esc(f.val)}" aria-label="${esc(f.label)}">`;
+  el.innerHTML=`<div class="hd"><div class="ico">${ic('flow')}</div><div><b id="sheetTitle">${esc(c.alias||'Automation')}</b><small>${esc(auDescribe(c))}</small></div></div>
+   ${F.map((f,i)=>`<div class="afield ${f.type==='text'||f.type==='days'?'full':''}"><span>${esc(f.label)}</span>${input(f,i)}</div>`).join('')}
+   <p class="note">Need another trigger, condition or step? Open it in Home Assistant's editor, which has everything.</p>
+   <div class="row" style="margin-top:12px;justify-content:space-between"><button class="btn" data-au="del" style="${AU.del?'color:var(--bad)':''}">${AU.del?'Tap again to delete':'Delete'}</button>
+    <div class="row"><button class="btn" data-au="ha">HA editor</button><button class="btn" data-close>Cancel</button><button class="btn primary" data-au="save">Save</button></div></div>`}
+
+/* new-automation builder: one trigger, a few common checks, one or more steps */
+const pick=(pred)=>Object.values(LIVE.H().states).filter(s=>pred(s)&&s.state!=='unavailable').map(s=>[s.entity_id,s.attributes.friendly_name||s.entity_id]).sort((a,b)=>a[1].localeCompare(b[1]));
+const dcIs=(...d)=>(s)=>s.entity_id.startsWith('binary_sensor.')&&d.includes(s.attributes.device_class);
+const PICK={on:()=>pick(s=>s.entity_id.startsWith('light.')),off:()=>pick(s=>s.entity_id.startsWith('light.')),scene:()=>pick(s=>s.entity_id.startsWith('scene.')),
+  plugon:()=>pick(s=>s.entity_id.startsWith('switch.')&&!/do_not_disturb|_power$/.test(s.entity_id)),plugoff:()=>PICK.plugon(),
+  say:()=>pick(s=>/^notify\.echo_.*_announce$/.test(s.entity_id)),push:()=>[]};
+const KINDS=[['on','Light on'],['off','Light off'],['scene','Scene'],['plugon','Plug on'],['plugoff','Plug off'],['say','Echo says'],['push','iPhone push']];
+const auStep=(k)=>({k,id:PICK[k]()[0]?.[0]||'',bri:80,kel:2700,msg:''});
+function auNew(from){const m=pick(dcIs('motion','occupancy','presence')),d=pick(dcIs('door','window','opening'));
+  AU.nb={when:'sun',event:'sunset',offset:0,time:'07:00',days:DOW.map(x=>x[0]),sensor:m[0]?.[0]||'',door:d[0]?.[0]||'',zone:'leave',offMin:5,home:true,dark:false,vac:true,acts:[auStep('on')],name:''};
+  openSheet('auto:new',from)}
+function auSuggest(n){const w={sun:n.event[0].toUpperCase()+n.event.slice(1),time:n.time,motion:fname(n.sensor),door:fname(n.door),zone:n.zone==='leave'?'Everyone left':'Arrival'}[n.when];
+  const a=n.acts[0];return `${w} · ${a?(a.k==='push'?'iPhone push':a.k==='say'?'Echo announcement':fname(a.id)+(a.k.endsWith('off')?' off':a.k==='scene'?'':' on')):'—'}`}
+function auBuild(n){const sup=(id)=>list(LIVE.H().states[id]?.attributes?.supported_color_modes);
+  const T={sun:{trigger:'sun',event:n.event,offset:fromMin(+n.offset||0)},time:{trigger:'time',at:n.time+':00'},motion:{trigger:'state',entity_id:n.sensor,to:'on'},door:{trigger:'state',entity_id:n.door,to:'on'},
+    zone:n.zone==='leave'?{trigger:'state',entity_id:'zone.home',to:'0',for:'00:05:00'}:{trigger:'state',entity_id:'zone.home',from:'0'}}[n.when];
+  const C=[];if(n.when==='time'&&n.days.length<7)C.push({condition:'time',weekday:DOW.map(x=>x[0]).filter(k=>n.days.includes(k))});
+  if(n.vac)C.push({condition:'state',entity_id:'input_boolean.vacation_mode',state:'off'});
+  if(n.home)C.push({condition:'numeric_state',entity_id:'zone.home',above:0});
+  if(n.dark)C.push({condition:'state',entity_id:'sun.sun',state:'below_horizon'});
+  const A=n.acts.map(a=>{const tg={entity_id:a.id};
+    if(a.k==='on'){const m=sup(a.id),data={};if(m.some(x=>x!=='onoff'))data.brightness_pct=+a.bri;if(m.includes('color_temp'))data.color_temp_kelvin=+a.kel;return {action:'light.turn_on',target:tg,data}}
+    return {off:{action:'light.turn_off',target:tg},scene:{action:'scene.turn_on',target:tg},plugon:{action:'switch.turn_on',target:tg},plugoff:{action:'switch.turn_off',target:tg},
+      say:{action:'notify.send_message',target:tg,data:{message:a.msg}},push:{action:'notify.mobile_app_azizs_iphone',data:{title:'Home',message:a.msg}}}[a.k]});
+  const lit=n.acts.filter(a=>a.k==='on').map(a=>a.id);
+  if(n.when==='motion'&&+n.offMin>0&&lit.length)A.push({wait_for_trigger:[{trigger:'state',entity_id:n.sensor,to:'off',for:fromMin(+n.offMin)}]},{action:'light.turn_off',target:{entity_id:lit}});
+  return {alias:n.name.trim()||auSuggest(n),description:'Made in the Liquid Glass dashboard',mode:n.when==='motion'?'restart':'single',triggers:[T],conditions:C,actions:A}}
+function auCheck(n){if(!n.acts.length)return 'Add at least one step';if(n.acts.some(a=>a.k!=='push'&&!a.id))return 'Pick a device for every step';
+  if(n.acts.some(a=>(a.k==='say'||a.k==='push')&&!a.msg.trim()))return 'Type the message';if(n.when==='motion'&&!n.sensor||n.when==='door'&&!n.door)return 'Pick a sensor';return ''}
+function drawBuilder(){const n=AU.nb,el=document.getElementById('sheet');el.style.setProperty('--glow','var(--accent)');
+  const sel=(key,opts,val,lab,i='')=>`<select class="vin" data-nb="${key}" ${i!==''?`data-ai="${i}"`:''} aria-label="${lab}">${opts.map(([v,t])=>`<option value="${esc(v)}" ${v===val?'selected':''}>${esc(t)}</option>`).join('')}</select>`;
+  const seg=(key,opts,val,lab)=>`<div class="seg full" role="group" aria-label="${lab}">${opts.map(([v,t])=>`<button data-au="nbset" data-key="${key}" data-val="${v}" aria-pressed="${v===val}">${t}</button>`).join('')}</div>`;
+  const num=(key,val,lab,i='',min='')=>`<input class="vin" type="number" data-nb="${key}" ${i!==''?`data-ai="${i}"`:''} ${min!==''?`min="${min}"`:''} value="${esc(val)}" aria-label="${lab}">`;
+  const when={sun:`${seg('event',[['sunrise','Sunrise'],['sunset','Sunset']],n.event,'Sun event')}<div class="afield"><span>Minutes before (−) or after</span>${num('offset',n.offset,'Minutes from the sun event')}</div>`,
+    time:`<div class="afield"><span>Time</span><input class="vin" type="time" data-nb="time" value="${n.time}" aria-label="Time"></div><div class="toggles">${DOW.map(([k,t])=>`<button class="tog" data-au="nbday" data-day="${k}" aria-pressed="${n.days.includes(k)}">${t}</button>`).join('')}</div>`,
+    motion:`${sel('sensor',pick(dcIs('motion','occupancy','presence')),n.sensor,'Sensor')}<div class="afield"><span>Lights off after no motion for (min, 0 = leave on)</span>${num('offMin',n.offMin,'Minutes without motion','',0)}</div>`,
+    door:sel('door',pick(dcIs('door','window','opening')),n.door,'Door'),
+    zone:seg('zone',[['leave','Everyone leaves'],['arrive','Someone gets home']],n.zone,'Presence')}[n.when];
+  const step=(a,i)=>{const o=PICK[a.k]();return `<div class="astep">${sel('k',KINDS,a.k,'Step type',i)}${a.k==='push'?'<span class="note">to your iPhone</span>':sel('id',o.length?o:[['','Nothing to pick']],a.id,'Device',i)}
+    <button class="btn small" data-au="nbdel" data-ai="${i}" aria-label="Remove step">×</button>
+    ${a.k==='on'?`<div class="more">${num('bri',a.bri,'Brightness %',i,1)}${num('kel',a.kel,'Warmth in kelvin',i,2200)}</div><span class="note" style="grid-column:1/-1">Brightness % · warmth K (2200 warm … 4000 cool)</span>`:''}
+    ${a.k==='say'||a.k==='push'?`<div class="more"><input class="vin" type="text" data-nb="msg" data-ai="${i}" value="${esc(a.msg)}" placeholder="Message" aria-label="Message"></div>`:''}</div>`};
+  const err=auCheck(n);
+  el.innerHTML=`<div class="hd"><div class="ico">${ic('flow')}</div><div><b id="sheetTitle">New automation</b><small>${esc(auDescribe(auBuild(n)))}</small></div></div>
+   <div class="lbl">When</div>${seg('when',[['sun','Sun'],['time','Time'],['motion','Motion'],['door','Door'],['zone','Home']],n.when,'When')}<div style="margin-top:8px">${when}</div>
+   <div class="lbl">Only if</div><div class="toggles">${[['home','Someone is home'],['dark',"It's dark"],['vac','Not on vacation']].map(([k,t])=>`<button class="tog" data-au="nbflag" data-key="${k}" aria-pressed="${n[k]}">${t}</button>`).join('')}</div>
+   <div class="lbl">Do</div>${n.acts.map(step).join('')}<button class="btn small" data-au="nbadd" style="margin-top:10px">+ Add step</button>
+   <div class="lbl">Name</div><input class="vin" type="text" data-nb="name" value="${esc(n.name)}" placeholder="${esc(auSuggest(n))}" aria-label="Name">
+   <p class="note" id="auErrMsg" style="color:var(--warn)">${err}</p>
+   <div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn" data-close>Cancel</button><button class="btn primary" id="auCreate" data-au="create" ${err?'disabled':''}>Create</button></div>`}
+
+if(LIVE.on){
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-au]');if(!b)return;const d=b.dataset,n=AU.nb;
+    if(d.au==='tog'){const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);LIVE.call('automation',on?'turn_on':'turn_off',{entity_id:d.aid});toast(on?'Automation on':'Automation off')}
+    else if(d.au==='run'){LIVE.call('automation','trigger',{entity_id:d.aid,skip_condition:true});toast('Running it now')}
+    else if(d.au==='edit'){const open=(c)=>{AU.draft=structuredClone(c);AU.eid=d.aid;AU.del=false;AU.fields=auFields(AU.draft);openSheet('auto:'+d.aid,b)};
+      AU.cfg[d.aid]?open(AU.cfg[d.aid]):auApi('GET',d.aid).then(c=>{AU.cfg[d.aid]=c;open(c)},auErr)}
+    else if(d.au==='day'){const f=AU.fields[d.ai],v=f.val.includes(d.day)?f.val.filter(x=>x!==d.day):[...f.val,d.day];
+      if(!v.length)return toast('Keep at least one day');auSet(f,DOW.map(x=>x[0]).filter(k=>v.includes(k)));drawSheet()}
+    else if(d.au==='save'){const id=AU.eid,c=AU.draft;auApi('POST',id,c).then(()=>{AU.cfg[id]=c;closeSheet();toast('Saved to Home Assistant');render()},auErr)}
+    else if(d.au==='del'){if(!AU.del){AU.del=true;return drawSheet()}const id=AU.eid;auApi('DELETE',id).then(()=>{delete AU.cfg[id];closeSheet();toast('Automation deleted')},auErr)}
+    else if(d.au==='ha'){const id=AU.eid;closeSheet();parent.history.pushState(null,'','/config/automation/edit/'+encodeURIComponent(id));parent.dispatchEvent(new CustomEvent('location-changed',{detail:{replace:false}}))}
+    else if(d.au==='new')auNew(b);
+    else if(d.au==='nbset'){n[d.key]=d.val;drawSheet()}
+    else if(d.au==='nbflag'){n[d.key]=!n[d.key];drawSheet()}
+    else if(d.au==='nbday'){if(n.days.includes(d.day)&&n.days.length===1)return toast('Keep at least one day');n.days=n.days.includes(d.day)?n.days.filter(x=>x!==d.day):[...n.days,d.day];drawSheet()}
+    else if(d.au==='nbadd'){n.acts.push(auStep('on'));drawSheet()}
+    else if(d.au==='nbdel'){n.acts.splice(+d.ai,1);drawSheet()}
+    else if(d.au==='create'){if(auCheck(n))return;const id='dash_'+Date.now(),c=auBuild(n);
+      auApi('POST',id,c).then(()=>{AU.cfg[id]={id,...c};AU.loaded=0;closeSheet();toast(`Created “${c.alias}”`);setTimeout(render,1500)},auErr)}
+  });
+  // typing updates the draft without redrawing (a redraw would swallow the next tap); only pickers redraw
+  const onField=(e)=>{const t=e.target,hd=document.querySelector('#sheet .hd small');
+    if(t.dataset.af!=null&&AU.fields[t.dataset.af]&&sheetId!=='auto:new'){const f=AU.fields[t.dataset.af];if(f.type==='time'&&!t.value)return;auSet(f,t.value);hd.textContent=auDescribe(AU.draft);return}
+    if(t.dataset.nb&&AU.nb&&sheetId==='auto:new'){const k=t.dataset.nb,n=AU.nb;
+      if(t.dataset.ai!=null){const a=n.acts[+t.dataset.ai];a[k]=t.value;if(k==='k')Object.assign(a,auStep(t.value),{msg:a.msg})}else n[k]=t.value;
+      if(t.tagName==='SELECT'){if(e.type==='change')drawSheet();return}
+      const err=auCheck(n);document.getElementById('auErrMsg').textContent=err;document.getElementById('auCreate').disabled=!!err;hd.textContent=auDescribe(auBuild(n));document.querySelector('#sheet [data-nb=name]').placeholder=auSuggest(n)}};
+  document.addEventListener('input',onField);document.addEventListener('change',onField);
+}
 addEventListener('hashchange',route);route();
 </script>

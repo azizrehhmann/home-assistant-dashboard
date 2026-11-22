@@ -1,6 +1,10 @@
 # Automations
 
-**Live since v0.11.0** (`ha/packages/automations.yaml` + `remotes.yaml`, deployed to `/config/packages/`). "Someone home" = `zone.home` (Aziz + Wifey), so nothing switches off while one of you is still in.
+**Manage them in the dashboard (v0.12.0):** the **Automations** tab ("Auto" on the iPhone) lists every automation with a plain-English summary, an on/off switch, **Run** and **Edit** (times, sunrise/sunset offsets, minutes, brightness, warmth, days, messages). **New** builds one from When / Only if / Do. Anything bigger: **HA editor** in the same sheet opens Home Assistant's full editor at that automation.
+
+**Home Assistant is the master copy:** automations live in `/config/automations.yaml` (HA rewrites it on every save, so YAML comments don't survive). `ha/automations.yaml` is a snapshot: run `tools/pull_automations.sh` before committing. Helpers and the remote script stay in `ha/packages/`.
+
+**Live since v0.11.0**. "Someone home" = `zone.home` (Aziz + Wifey), so nothing switches off while one of you is still in.
 
 | Automation | What happens |
 |---|---|
