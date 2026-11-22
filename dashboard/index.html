@@ -478,11 +478,20 @@ function vClimate(){
    <div class="grid">${ids('climate.').map(climateCard).join('')}
    ${aqCard()}</div>`;
 }
+const PROG_SHORT={cotton_eco_4060:'Eco 40-60',cotton:'Cotton',easy_care:'Easy care',mix:'Mix',delicates_silk:'Delicates',wool:'Wool',dark_wash:'Darks',towels:'Towels',shirts_blouses:'Shirts',sport_fitness:'Sport',super_153045_super_1530:'Quick 15/30',power_speed_59:'Speed 59',sensitive:'Sensitive',outdoor:'Outdoor',drum_clean:'Drum clean',curtains:'Curtains',sport_shoes:'Shoes',my_time:'My time'};
+const progName=(o)=>PROG_SHORT[o.replace('laundry_care_washer_program_','')]||o.replace('laundry_care_washer_program_','').replace(/_/g,' ');
+function washerControls(w){if(!w.live)return '';const run=['Running','Paused','Delayed start'].includes(w.status);
+  const fav=['cotton_eco_4060','cotton','easy_care','mix','delicates_silk','wool','towels','super_153045_super_1530'].map(k=>'laundry_care_washer_program_'+k).filter(o=>w.programs.includes(o));
+  return `<div class="lbl">Program <b>${w.selected?progName(w.selected):'none'}</b></div>
+   <div class="toggles">${fav.map(o=>`<button class="tog" data-wprog="${o}" aria-pressed="${w.selected===o}" ${run?'disabled':''}>${progName(o)}</button>`).join('')}</div>
+   ${!run&&!w.remote?`<p class="note" style="margin:8px 0 0">${w.door==='open'?'Close the door, then press':'Press'} <b>Remote Start</b> on the washer to start it from here.</p>`:''}
+   <div class="row" style="margin-top:12px">${run?`${w.canPause&&w.status==='Running'?'<button class="btn" data-wash="pause">Pause</button>':''}${w.canResume&&w.status==='Paused'?'<button class="btn" data-wash="resume">Resume</button>':''}<button class="btn" data-wash="stop">Stop</button>`
+     :`<button class="btn primary" data-wash="start" ${w.remote&&w.selected?'':'disabled'}>Start ${w.selected?progName(w.selected):''}</button>`}</div>`}
 function washerCard(){
   const w=S['sensor.washer'];
   return `<div class="card glass"><h3>Washing machine<span class="pill ${w.status==='Running'?'ok':''}">${w.status}</span></h3>
    <div class="flex" style="margin-top:14px"><div class="ring" style="--p:${w.progress}"><div><b>${w.finish}</b><small>finishes</small></div></div>
-   <div style="min-width:0"><div style="font-weight:600;font-size:17px">${w.program}</div><div class="note">${w.detail}</div><div class="note">Siemens · Kitchen</div></div></div></div>`;
+   <div style="min-width:0"><div style="font-weight:600;font-size:17px">${w.program}</div><div class="note">${w.detail}</div><div class="note">Siemens · Kitchen</div></div></div>${washerControls(w)}</div>`;
 }
 function vacButtons(){const v=S[VAC],cl=v.status==='Cleaning';
   return `<div class="row" style="margin-top:14px">
@@ -519,7 +528,7 @@ function vacuumPanel(){
     </div>
    </div>
    ${vacButtons()}
-   <p class="note" style="margin:12px 0 0">In Home Assistant this runs <code>vacuum.send_command</code> → <code>app_segment_clean</code> with the room IDs from the Roborock map and <code>repeat: ${v.repeat}</code>, after <code>vacuum.set_fan_speed: ${v.fan.toLowerCase()}</code>.</p></div>`;
+   ${LIVE.on?'':`<p class="note" style="margin:12px 0 0">In Home Assistant this runs <code>vacuum.send_command</code> → <code>app_segment_clean</code> with the room IDs from the Roborock map and <code>repeat: ${v.repeat}</code>, after <code>vacuum.set_fan_speed: ${v.fan.toLowerCase()}</code>.</p>`}</div>`;
 }
 function vAppliances(){
   const echo=ids('media_player.echo'), rc=S['switch.rice_cooker'];
@@ -572,7 +581,7 @@ const RENDER={home:vHome,rooms:vRooms,climate:vClimate,appliances:vAppliances,se
 let view='home';
 function nav(){
   const link=(id,n,i)=>`<a class="nav" href="#${id}" ${id===view?'aria-current="page"':''}>${ic(i)}<span>${n}</span></a>`;
-  document.getElementById('side').innerHTML=`<div class="brand"><span>${ic('home')}</span>Aziz Home</div>${VIEWS.map(v=>link(...v)).join('')}<div class="foot"><span>Appearance</span>${themeSeg()}<span>Mock data · Home Assistant preview</span></div>`;
+  document.getElementById('side').innerHTML=`<div class="brand"><span>${ic('home')}</span>Aziz Home</div>${VIEWS.map(v=>link(...v)).join('')}<div class="foot"><span>Appearance</span>${themeSeg()}<span>${typeof LIVE!=='undefined'&&LIVE.on?'Live · Home Assistant':'Mock data · Home Assistant preview'}</span></div>`;
   document.getElementById('tabbar').innerHTML=VIEWS.map(([id,n,i])=>`<a href="#${id}" ${id===view?'aria-current="page"':''}>${ic(i)}<span>${n}</span></a>`).join('');
 }
 function render(){nav();document.getElementById('main').innerHTML=vacBanner()+RENDER[view]();tick();if(view==='3d')mount3d();else T3.stop?.();}
@@ -648,7 +657,7 @@ function drawSheet(){
    ${e.rgb?`<div class="lbl">Colour <b id="shRV">${e.rgb}</b></div>
    <div class="swatches" role="group" aria-label="Colour presets">${SWATCHES.map(c=>`<button data-swatch="${c}" style="background:${c}" aria-pressed="${e.rgb===c}" aria-label="Colour ${c}"></button>`).join('')}
    <input type="color" id="sh-rgb" value="${e.rgb}" aria-label="Custom colour" style="width:38px;height:38px;border:0;border-radius:50%;padding:0;background:none"></div>`:''}
-   <p class="note" style="margin:14px 0 0">HA call: <code>light.turn_on</code> with <code>brightness_pct</code>${e.kelvin?', <code>color_temp_kelvin</code>':''}${e.rgb?', <code>rgb_color</code>':''}.</p>
+   ${LIVE.on?'':`<p class="note" style="margin:14px 0 0">HA call: <code>light.turn_on</code> with <code>brightness_pct</code>${e.kelvin?', <code>color_temp_kelvin</code>':''}${e.rgb?', <code>rgb_color</code>':''}.</p>`}
    <div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn primary" data-close>Done</button></div>`;
 }
 
@@ -858,7 +867,7 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{const t=e.target;
   if(sheetId==='vacation'&&t.id?.startsWith('vd-')){if(t.value)VD[{'vd-start':'start','vd-end':'end','vd-time':'robotTime'}[t.id]]=t.value;drawSheet();return}
-  if(t.dataset.bri)update();else if(sheetId&&e.target.id?.startsWith('sh-'))drawSheet()});
+  if(t.dataset.bri)update();else if(sheetId&&e.target.id?.startsWith('sh-')){update()}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sheetId)closeSheet()});
 
 /* ---------- live mode: inside Home Assistant (Webpage dashboard, same origin) read and drive real entities ---------- */
@@ -876,11 +885,13 @@ const LIVE=(()=>{
   const VROOM={Study:'studio',Bathroom:'bathroom',Hall:'hallway','Living room':'living',Kitchen:'kitchen',Bedroom:'bedroom'};
   const BAT={'event.bedroom_dual_button':'sensor.bedroom_button_battery','event.bedroom_scroll_wheel':'sensor.bedroom_wheel_battery','event.living_room_scroll_wheel':'sensor.living_room_wheel_battery','event.studio_scroll_wheel':'sensor.studio_wheel_battery'};
   const num=(id)=>{const s=st(id);return ok(s)?+s.state:null};
+  const pend={};const held=(id)=>pend[id]&&Date.now()<pend[id].until&&H().states[id]===pend[id].ref;
   const snapOf=(e)=>({on:e.on,bri:e.bri,kelvin:e.kelvin,rgb:e.rgb,target:e.target,preset:e.preset});
   L.pull=()=>{
     if(H().states===L.last)return false;L.last=H().states;
     if(Object.keys(seen).length&&Object.entries(seen).every(([id,o])=>H().states[id]===o))return false;
     for(const [id,e] of Object.entries(S)){const d=id.split('.')[0],s=st(id);
+      if(held(id))continue;
       if(d==='light'||d==='switch'){e.available=ok(s);if(!e.available){e.on=false;continue}
         e.on=s.state==='on';const a=s.attributes,m=a.supported_color_modes||[];
         if(d==='light'){if(a.brightness!=null)e.bri=Math.max(1,Math.round(a.brightness/2.55));e.nodim=m.length===1&&m[0]==='onoff';
@@ -898,7 +909,10 @@ const LIVE=(()=>{
     const w=S['sensor.washer'],ws=st('sensor.washer_operation_state');w.available=ok(ws);
     if(w.available){w.status=WASH[ws.state]||ws.state;const ft=st('sensor.washer_finish_time');w.finish=ok(ft)?new Date(ft.state).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—';
       w.progress=num('sensor.washer_program_progress')||0;const pr=[st('select.kitchen_washing_machine_active_program'),st('select.kitchen_washing_machine_selected_program')].find(ok);
-      w.program=pr?pr.state.replace('laundry_care_washer_program_','').replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()):'No program';w.detail=ws.state==='run'?`${w.progress}% done`:'Siemens WG44B2040'}
+      w.program=pr?pr.state.replace('laundry_care_washer_program_','').replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()):'No program';w.detail=ws.state==='run'?`${w.progress}% done`:'Siemens WG44B2040';
+      const sel=st('select.kitchen_washing_machine_selected_program');w.programs=sel?.attributes.options||[];w.selected=ok(sel)?sel.state:(w.selected||'');
+      w.remote=st('binary_sensor.kitchen_washing_machine_remote_start')?.state==='on';w.door=st('sensor.kitchen_washing_machine_door')?.state;w.live=true;
+      w.canPause=!!st('button.kitchen_washing_machine_pause_program');w.canResume=!!st('button.kitchen_washing_machine_resume_program')}
     const v=S[VAC],vs=st(VAC);v.available=ok(vs);
     if(v.available){v.status={docked:'Docked',cleaning:'Cleaning',returning:'Returning',paused:'Paused',idle:'Idle',error:'Error'}[vs.state]||vs.state;
       v.battery=Math.round(num('sensor.studio_roborock_battery')??v.battery);const f=st('input_select.robot_suction');if(ok(f))v.fan=FAN[f.state]||f.state;
@@ -912,10 +926,11 @@ const LIVE=(()=>{
         robotEvery:Math.round(num('input_number.vacation_robot_every_days')||3),robotTime:(st('input_datetime.vacation_robot_time')?.state||'11:00').slice(0,5),
         alerts:on('security_alerts'),preheat:on('preheat'),preheatH:Math.round(num('input_number.vacation_preheat_hours')||3),sim:on('presence_simulation'),humidity:on('humidity_alerts')})}
     const wx=st(Object.keys(H().states).find(k=>k.startsWith('weather.')));
-    L.wx=ok(wx)?{t:Math.round(wx.attributes.temperature),c:wx.state.replace(/[-_]/g,' ').replace(/^./,c=>c.toUpperCase())}:null;
+    L.wx=ok(wx)?{t:Math.round(wx.attributes.temperature),c:({partlycloudy:'Partly cloudy','clear-night':'Clear night',lightning:'Thunderstorm','lightning-rainy':'Thunderstorm','snowy-rainy':'Sleet'})[wx.state]||wx.state.replace(/[-_]/g,' ').replace(/^./,c=>c.toUpperCase())}:null;
     return true};
   // send what a click changed (lights, plugs, heating) by diffing against the last state Home Assistant reported
   L.push=()=>{for(const [id,p] of Object.entries(L.snap)){const e=S[id],d=id.split('.')[0];if(!e.available)continue;
+      const was=JSON.stringify(p),now=JSON.stringify(snapOf(e));if(was!==now)pend[id]={ref:H().states[id],until:Date.now()+5000};
       if(d==='climate'){if(e.target!==p.target)call('climate','set_temperature',{entity_id:id,temperature:e.target});
         if(e.preset!==p.preset)call('climate','set_hvac_mode',{entity_id:id,hvac_mode:/Off|Frost/.test(e.preset)?'off':'heat'})}
       else if(!e.on&&p.on)call(d,'turn_off',{entity_id:id});
@@ -933,6 +948,11 @@ const LIVE=(()=>{
     if(d.repeat){call('input_number','set_value',{entity_id:'input_number.robot_passes',value:+d.repeat});return true}
     if(d.vac==='start'){call('script','turn_on',{entity_id:'script.robot_clean_selected_rooms'});toast(`Cleaning ${v.rooms.map(roomName).join(', ')} · ${v.repeat}× · ${v.fan}`);return true}
     if(d.vac){call('vacuum',{all:'start',pause:'pause',dock:'return_to_base'}[d.vac],{entity_id:VAC});toast({all:'Cleaning the whole flat',pause:'Robot paused',dock:'Robot returning to dock'}[d.vac]);return true}
+    if(d.wprog){call('select','select_option',{entity_id:'select.kitchen_washing_machine_selected_program',option:d.wprog});S['sensor.washer'].selected=d.wprog;render();return true}
+    if(d.wash){const w=S['sensor.washer'];
+      if(d.wash==='start'){if(!w.selected)return toast('Pick a program first'),true;call('select','select_option',{entity_id:'select.kitchen_washing_machine_active_program',option:w.selected});toast(`Starting ${progName(w.selected)}`)}
+      else call('button','press',{entity_id:`button.kitchen_washing_machine_${d.wash}_program`}),toast({stop:'Stopping the washer',pause:'Pausing',resume:'Resuming'}[d.wash]);
+      return true}
     if(d.announce){toast('Echo Dots are not connected to Home Assistant yet');return true}
     if('vdgo' in d){const s=VD.startMode==='now'?today():VD.start,dated=VD.endMode==='date';
       call('input_datetime','set_datetime',{entity_id:'input_datetime.vacation_start',date:s});if(dated)call('input_datetime','set_datetime',{entity_id:'input_datetime.vacation_end',date:VD.end});
@@ -945,7 +965,9 @@ const LIVE=(()=>{
     return false};
   let busy=0;addEventListener('pointerdown',()=>busy=Infinity,true);addEventListener('pointerup',()=>busy=Date.now()+600,true);addEventListener('pointercancel',()=>busy=0,true);
   // shortcut: polls the parent's hass object once a second instead of subscribing; fine for one dashboard, switch to subscribeEntities if it ever feels laggy.
-  setInterval(()=>{if(Date.now()>busy&&L.pull()){render();if(T3.ready)T3.sync();if(sheetId&&sheetId!=='vacation')drawSheet()}},1000);
+  let sheetRef=null;
+  setInterval(()=>{if(Date.now()>busy&&L.pull()){render();if(T3.ready)T3.sync();
+    if(sheetId&&sheetId!=='vacation'&&H().states[sheetId]!==sheetRef){sheetRef=H().states[sheetId];if(!document.activeElement?.closest('#sheet input'))drawSheet()}}},1000);
   L.pull();return L;
 })();
 addEventListener('hashchange',route);route();
