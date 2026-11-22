@@ -865,7 +865,7 @@ const LIVE=(()=>{
   let host=null;try{if(parent!==window)host=parent.document.querySelector('home-assistant')}catch(e){}
   const L={on:!!host?.hass,snap:{},last:null,wx:null};if(!L.on)return L;
   const TPL=JSON.parse(JSON.stringify(S)); // which mock tiles have warmth / colour controls
-  const H=()=>host.hass, st=(id)=>H().states[id], ok=(s)=>!!s&&!['unavailable','unknown'].includes(s.state);
+  const seen={};const H=()=>host.hass, st=(id)=>(seen[id]=H().states[id]), ok=(s)=>!!s&&!['unavailable','unknown'].includes(s.state);
   const call=(dom,svc,data)=>H().callService(dom,svc,data).catch(err=>toast('Home Assistant: '+(err.message||err.code||'error')));
   const hex=(c)=>'#'+c.map(x=>x.toString(16).padStart(2,'0')).join(''), rgbOf=(h)=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
   const ago=(t)=>{const m=Math.round((Date.now()-new Date(t))/6e4);return m<1?'just now':m<60?`${m} min ago`:m<1440?`${Math.round(m/60)} h ago`:`${Math.round(m/1440)} d ago`};
@@ -878,6 +878,7 @@ const LIVE=(()=>{
   const snapOf=(e)=>({on:e.on,bri:e.bri,kelvin:e.kelvin,rgb:e.rgb,target:e.target,preset:e.preset});
   L.pull=()=>{
     if(H().states===L.last)return false;L.last=H().states;
+    if(Object.keys(seen).length&&Object.entries(seen).every(([id,o])=>H().states[id]===o))return false;
     for(const [id,e] of Object.entries(S)){const d=id.split('.')[0],s=st(id);
       if(d==='light'||d==='switch'){e.available=ok(s);if(!e.available){e.on=false;continue}
         e.on=s.state==='on';const a=s.attributes,m=a.supported_color_modes||[];
@@ -909,7 +910,7 @@ const LIVE=(()=>{
       Object.assign(V,{on:vm.state==='on',scheduled:false,start:dt('input_datetime.vacation_start')||today(),end:on('open_ended')?null:dt('input_datetime.vacation_end'),
         robotEvery:Math.round(num('input_number.vacation_robot_every_days')||3),robotTime:(st('input_datetime.vacation_robot_time')?.state||'11:00').slice(0,5),
         alerts:on('security_alerts'),preheat:on('preheat'),preheatH:Math.round(num('input_number.vacation_preheat_hours')||3),sim:on('presence_simulation'),humidity:on('humidity_alerts')})}
-    const wx=Object.values(H().states).find(s=>s.entity_id.startsWith('weather.'));
+    const wx=st(Object.keys(H().states).find(k=>k.startsWith('weather.')));
     L.wx=ok(wx)?{t:Math.round(wx.attributes.temperature),c:wx.state.replace(/[-_]/g,' ').replace(/^./,c=>c.toUpperCase())}:null;
     return true};
   // send what a click changed (lights, plugs, heating) by diffing against the last state Home Assistant reported
@@ -941,9 +942,9 @@ const LIVE=(()=>{
     if('vacEnd' in d){ib('vacation_mode',false);toast('Vacation mode off');return true}
     if('vacNow' in d){ib('vacation_mode',true);return true}
     return false};
-  let dragging=false;addEventListener('pointerdown',e=>{if(e.target.type==='range')dragging=true});addEventListener('pointerup',()=>dragging=false);
+  let busy=0;addEventListener('pointerdown',()=>busy=Infinity,true);addEventListener('pointerup',()=>busy=Date.now()+600,true);addEventListener('pointercancel',()=>busy=0,true);
   // shortcut: polls the parent's hass object once a second instead of subscribing; fine for one dashboard, switch to subscribeEntities if it ever feels laggy.
-  setInterval(()=>{if(!dragging&&L.pull()){render();if(T3.ready)T3.sync();if(sheetId&&sheetId!=='vacation')drawSheet()}},1000);
+  setInterval(()=>{if(Date.now()>busy&&L.pull()){render();if(T3.ready)T3.sync();if(sheetId&&sheetId!=='vacation')drawSheet()}},1000);
   L.pull();return L;
 })();
 addEventListener('hashchange',route);route();
