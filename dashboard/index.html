@@ -101,6 +101,7 @@ h2 .end{margin-left:auto}
 .tile .ico{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--hair);color:var(--fg-2);transition:all .25s;pointer-events:none}
 .tile .nm{font-weight:600;font-size:14.5px;line-height:1.25;pointer-events:none;overflow-wrap:anywhere}
 .tile .st{font-size:13px;color:var(--fg-3);pointer-events:none;font-variant-numeric:tabular-nums}
+.tile .st button{pointer-events:auto;color:var(--fg)}
 .tile.on{background:linear-gradient(160deg,color-mix(in srgb,var(--glow) 34%,transparent),var(--glass) 72%)}
 .tile.on .ico{background:var(--glow);color:#2b2111;box-shadow:0 0 18px color-mix(in srgb,var(--glow) 70%,transparent)}
 .tile.on.rgb .ico{color:#fff}
@@ -449,7 +450,7 @@ function vRooms(){
       ...(r.id==='kitchen'?[`<a href="#appliances" style="color:inherit;text-decoration:none">${infoTile('washer','Washing machine',`${S['sensor.washer'].status} · ${S['sensor.washer'].power===false?'tap to control':'done '+S['sensor.washer'].finish}`,'on')}</a>`]:[]),
       ...(r.id==='studio'?[infoTile('lux','Light level',`${S['sensor.studio_illuminance'].lux} lx · ${luxLabel(S['sensor.studio_illuminance'].lux)}`),infoTile('robot','Roborock Q5 Pro',`${vacStatus()} · ${S[VAC].battery}%`,S[VAC].status==='Cleaning'?'on':'')]:[]),
       ...(r.id==='hallway'?[infoTile('hub','DIRIGERA hub','Online · Matter bridge')]:[]),
-      ...mp.map(k=>infoTile(S[k].icon,S[k].name,S[k].available===false?(LIVE.on?'Not paired yet':'Unresponsive'):S[k].icon==='echo'?(S[k].state?S[k].state[0].toUpperCase()+S[k].state.slice(1):'Idle'):S[k].on?'On':'Off',S[k].available===false?'off-line':'')),
+      ...mp.map(k=>k==='media_player.living_room_tv'&&LIVE.on?infoTile('tv','Hisense TV',`via Alexa<span class="tvb" style="justify-content:flex-start;margin-top:6px"><button class="btn small" data-tv="off">Off</button><button class="btn small" data-tv="on">On</button></span>`):infoTile(S[k].icon,S[k].name,S[k].available===false?(LIVE.on?'Not paired yet':'Unresponsive'):S[k].icon==='echo'?(S[k].state?S[k].state[0].toUpperCase()+S[k].state.slice(1):'Idle'):S[k].on?'On':'Off',S[k].available===false?'off-line':'')),
       ...sen.map(sensorTile),
       ...ev.map(k=>infoTile('remote',S[k].name,LIVE.on?(S[k].available?S[k].last[0].toUpperCase()+S[k].last.slice(1):'Not paired yet'):`Last: ${S[k].last}`,S[k].available===false?'off-line':'')),
     ];
@@ -541,9 +542,6 @@ function vAppliances(){
      <button class="btn ${rc.on?'':'primary'}" data-toggle="switch.rice_cooker">${rc.on?'Turn off':'Turn on'}</button></div>
    <div class="card glass"><h3>Living room media</h3>
      <div class="kv"><span>${ic('tv')}Hisense TV${LIVE.on?' · via Alexa':''}</span>${LIVE.on?`<span class="tvb"><button class="btn small" data-tv="off">Off</button><button class="btn small" data-tv="on">On</button></span>`:'<span class="pill bad">Unresponsive</span>'}</div>
-     ${LIVE.on?`<div class="kv"><span>Volume</span><span class="tvb"><button class="btn small" data-tv="voldown" aria-label="TV volume down">−</button><button class="btn small" data-tv="mute">Mute</button><button class="btn small" data-tv="volup" aria-label="TV volume up">+</button></span></div>
-     <div class="kv"><span>Playback</span><span class="tvb"><button class="btn small" data-tv="pause">Pause</button><button class="btn small" data-tv="play">Play</button></span></div>
-     <div class="kv"><span>Apps</span><span class="tvb"><button class="btn small" data-tv="netflix">Netflix</button><button class="btn small" data-tv="youtube">YouTube</button></span></div>`:''}
      <div class="kv"><span>${ic('speaker')}Philips HTL3320</span><b>${S['media_player.soundbar'].on?'On':'Standby'}</b></div>
      <div class="kv"><span>${ic('strip')}Govee TV lights</span><button class="btn small" data-adjust="light.tv_lights">${S['light.tv_lights'].on?S['light.tv_lights'].bri+'% · colour':'Off · adjust'}</button></div>
      <div class="row" style="margin-top:12px"><button class="btn primary" data-scene="movie">Movie mode</button></div></div>
@@ -968,8 +966,8 @@ const LIVE=(()=>{
       else call('button','press',{entity_id:`button.kitchen_washing_machine_${d.wash}_program`}),toast({stop:'Stopping the washer',pause:'Pausing',resume:'Resuming'}[d.wash]);
       return true}
     if(d.tv){const dev='5c1cc20b821f547aa2b140387426c229'; // shortcut: living-room Echo device id; update if that Echo is re-paired
-      const cmd={on:'turn on the TV',off:'turn off the TV',volup:'turn up the volume on the TV',voldown:'turn down the volume on the TV',mute:'mute the TV',pause:'pause the TV',play:'resume the TV',netflix:'open Netflix on the TV',youtube:'open YouTube on the TV'}[d.tv];
-      call('alexa_devices','send_text_command',{device_id:dev,text_command:cmd});toast(`TV: ${{on:'on',off:'off',volup:'volume up',voldown:'volume down',mute:'mute',pause:'pause',play:'play',netflix:'Netflix',youtube:'YouTube'}[d.tv]} · via Alexa`);return true}
+      const cmd={on:'turn on the TV',off:'turn off the TV'}[d.tv];
+      call('alexa_devices','send_text_command',{device_id:dev,text_command:cmd});toast(`TV: ${d.tv} · via Alexa`);return true}
     if(d.announce){const t=document.getElementById('annText'),msg=t?.value.trim();if(!msg)return toast('Type a message first'),t?.focus(),true;
       const to=d.announce==='all'?Object.keys(S).filter(k=>k.startsWith('media_player.echo')):[d.announce];
       to.forEach(k=>call('notify','send_message',{entity_id:k.replace('media_player.','notify.')+'_announce',message:msg}));t.value='';toast(`Announced on ${to.length>1?'all Echo Dots':S[to[0]].name}`);return true}
