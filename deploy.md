@@ -6,7 +6,6 @@ Work through the phases in order and tick the boxes. Allow 3–4 hours in total;
 **Have ready before you start**
 - [ ] iPhone with the **Home Assistant Companion app**, logged in to your HA. Matter pairing only works from the app, not from a browser.
 - [ ] IKEA Home smart app, Meross app, Smart Life and/or Tapo app, Govee Home app, Roborock app, Home Connect app, Alexa app.
-- [ ] The **8-digit HomeKit code on the sticker of the tado Internet Bridge** (side of the bridge). tado cannot replace a lost code.
 - [ ] Amazon account set to **authenticator-app 2-step verification** (SMS codes do not work with HA).
 - [ ] A free **Home Connect developer account** (Phase C2 explains it).
 
@@ -87,22 +86,15 @@ IKEA's new Thread devices are the BILRESA buttons and wheels, the MYGGSPRAY moti
 
 ## Phase C: the other integrations
 
-### C1. tado° heating (classic V3+ system)
-tado allows **100 requests/day on a free account** (20,000 with Auto-Assist). At default settings HA uses about 288, so the integration dies by midday. The fix is to control the heating **locally over HomeKit** and use the cloud only for Away and geofencing.
-
-*Check first:* if your app or bridge says **tado X**, skip this section. tado X needs Matter over Thread, and you'll need the ZBT-2.
-
-1. [ ] **Local control (HomeKit)**:
-   - If the bridge is in Apple Home, remove it there.
-   - Hold the reset button on the back of the Internet Bridge **for 10 s or more**, until the LEDs flash 5 times. This resets HomeKit only; your rooms and schedules stay.
-   - HA → Settings → Devices & services → the discovered **HomeKit Device** "tado" → Configure → enter the sticker code.
-   - Result: one climate entity per room (current and target temperature, heat/off) plus temperature sensors.
-2. [ ] **Cloud (presence and Away)**:
-   - Add the **tado** integration and approve the login link.
-   - Then open the integration's **⋮ → System options → turn off "Enable polling for changes"**.
-   - Polling now runs only from the automation `tado_slow_refresh`, every 30 minutes, which is about 48 calls a day (it will be in `automations.md`).
-3. [ ] Name the four HomeKit climate entities `climate.living_room`, `climate.studio`, `climate.bedroom` and `climate.bathroom` (Phase D). The cloud ones keep a `_tado` suffix.
-- HomeKit allows one controller only, so the bridge leaves Apple Home. To keep Siri, expose it back through HA's **HomeKit Bridge** integration.
+### C1. tado° X heating (done 2026-11-22)
+The flat has **tado X** (4 Smart Radiator Thermostats X + Bridge X). Two routes run side by side:
+1. [x] **Matter (local):** each thermostat added to HA as a Matter device. Heat/off and target only. Entities are `climate.<room>_matter` (hidden); they keep working if tado's cloud is down.
+2. [x] **tado X integration (cloud, community):** the official tado integration loops on "Device login flow status is PENDING" with tado X, so it was removed. Instead, [exabird/ha-tado-x](https://github.com/exabird/ha-tado-x) v1.8.11 lives in `/config/custom_components/tado_x` (Marketplace route: Add from link). Approve the tado login link once.
+   - `climate.<room>`: modes `auto` (= tado schedule), `heat`, `off`. A target change is a 30-minute timer, as in the tado app.
+   - Per-room boost: `tado_x.set_climate_timer` with 25 °C for 30 min.
+   - Home-wide: `button.home_boost_all`, `button.home_turn_off_all`, `button.home_resume_schedules`.
+   - Uses about 30 API calls per hour of the 20,000/day quota (`sensor.home_home_api_quota_remaining`).
+3. [x] The official tado DHCP discovery is set to *ignored*, so it stops prompting.
 - If one thermostat goes "unavailable" over HomeKit: delete `.storage/homekit_controller-entity-map` and pair again.
 
 ### C2. Siemens washing machine (Home Connect)
@@ -184,7 +176,7 @@ The dashboard and packages use these IDs. For each one: Settings → Entities �
 | `binary_sensor.studio_presence_zone_1/2/3` | Meross zones |
 | `sensor.studio_illuminance` | Meross light level |
 | `sensor.air_quality_monitor_pm25` (+ humidity/temperature) | IKEA air quality monitor |
-| `climate.living_room`, `climate.studio`, `climate.bedroom`, `climate.bathroom` | tado over HomeKit |
+| `climate.living_room`, `climate.studio`, `climate.bedroom`, `climate.bathroom` | tado X integration (Matter twins: `…_matter`, hidden) |
 | `sensor.washer_operation_state`, `sensor.washer_finish_time`, `sensor.washer_program_progress`, `event.washer_program_finished` | Home Connect |
 | `vacuum.roborock_q5_pro`, `image.roborock_q5_pro_map` | Roborock |
 | `media_player.living_room_tv` | Hisense TV |

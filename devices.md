@@ -15,13 +15,13 @@ Confirmed with Aziz on 2026-11-21. Each physical device listed once (many also a
 | Living | Air Quality Monitor — **offline, re-pair first** | IKEA → Matter |
 | Living | Living room lamp | Wi-Fi (Tuya or Tapo) |
 | Living | TV lights — Govee LED strip behind TV | Govee lights local (LAN) / Govee cloud fallback |
-| Living | Hisense TV (VIDAA OS) | HACS VIDAA integration (TBC) |
+| Living | Hisense TV (VIDAA OS) | VIDAA integration needs a Hisense client certificate (not pursued); route: Alexa text commands or an IR blaster |
 | Living | Philips soundbar HTL3320/10 ("Living Room Play-Fi") | TBC: Play-Fi / DLNA / Alexa; Bluetooth fallback |
 | Living | Echo Dot | Alexa Devices |
 | Kitchen | Kitchen ceiling light | IKEA → Matter |
 | Kitchen | MYGGSPRAY motion sensor | IKEA → Matter |
 | Kitchen | Rice cooker plug | Wi-Fi (Tuya or Tapo) |
-| Kitchen | Siemens washing machine WG44B2040 | Home Connect |
+| Kitchen | Siemens washing machine WG44B2040 | Home Connect (remote power-on works; starting needs Remote Start pressed on the machine) |
 | Kitchen | Echo Dot | Alexa Devices |
 | Hallway | Hallway motion sensor | IKEA → Matter |
 | Hallway | Main Door Sensor | IKEA → Matter |
@@ -32,9 +32,9 @@ Confirmed with Aziz on 2026-11-21. Each physical device listed once (many also a
 | Studio | Meross presence sensor, Matter-over-Thread, 3 zones | Matter (via DIRIGERA Thread) |
 | Studio | Roborock Q5 Pro (dock) | Roborock |
 | Studio | Echo Dot | Alexa Devices |
-| Balcony | Balcony lights | Wi-Fi (Tuya or Tapo) |
-| Living, Studio, Bedroom, Bathroom | tado° heating zones (temp + humidity) | tado |
+| Balcony | Balcony lights (LEDVANCE SMART+ Wi-Fi plug, Tuya-based) | Tuya, after moving the plug to the Smart Life app (local key is cloud-only) |
+| Living, Studio, Bedroom, Bathroom | tado° X radiator thermostats (temp + humidity) | tado X (community) + Matter |
 
 ## Open items
-- Which of Living room lamp / Balcony lights / Rice cooker plug are Tapo vs Tuya (HA discovery will tell).
+- Living room lamp and rice cooker plug: TP-Link Kasa (local). Balcony lights: LEDVANCE (Tuya).
 - Govee strip model (decides LAN vs cloud).

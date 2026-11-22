@@ -463,7 +463,8 @@ function climateCard(id){
    <div class="temp">${c.cur.toFixed(1)}<sup>°C</sup></div>
    <div class="kv"><span>${ic('drop')}Humidity</span><b>${c.hum}%</b></div>
    <div class="stepper"><button data-step="${id}" data-d="-0.5" aria-label="Lower ${c.name} target">−</button>
-   <output>Target ${c.target.toFixed(1)}°</output><button data-step="${id}" data-d="0.5" aria-label="Raise ${c.name} target">+</button></div></div>`;
+   <output>Target ${c.target.toFixed(1)}°</output><button data-step="${id}" data-d="0.5" aria-label="Raise ${c.name} target">+</button></div>
+   ${LIVE.on?`<div class="seg full" style="margin-top:12px" role="group" aria-label="${c.name} heating mode">${['Schedule','Boost','Off'].map(m=>`<button data-cmode="${m}" data-room="${id}" aria-pressed="${c.preset===m}">${m}</button>`).join('')}</div>`:''}</div>`;
 }
 function aqCard(){const a=S['sensor.air_quality_monitor'];
   if(!a.available)return `<div class="card glass"><h3>Air Quality Monitor<span class="pill bad">Offline</span></h3>
@@ -474,7 +475,7 @@ function aqCard(){const a=S['sensor.air_quality_monitor'];
     <div class="kv"><span>${ic('leaf')}PM2.5</span><b>${a.pm25??'—'} µg/m³</b></div><div class="kv"><span>${ic('drop')}Humidity</span><b>${a.hum!=null?Math.round(a.hum):'—'}%</b></div>
     <div class="kv"><span>${ic('climate')}Temperature</span><b>${a.temp!=null?a.temp.toFixed(1):'—'}°</b></div>${/poor/.test(a.rating)?'<p class="note" style="margin:8px 0 0">Open a window for a few minutes.</p>':''}</div>`}
 function vClimate(){
-  return head('Climate',vacOn()?'tado° · 4 zones · Vacation: frost protection':LIVE.on?'tado° X · 4 radiators':'tado° · 4 zones · Geofencing: Away',`<button class="btn" data-tado="off">Turn off all rooms</button><button class="btn primary" data-tado="boost">Boost heating</button>`)+`
+  return head('Climate',vacOn()?'tado° · 4 zones · Vacation: frost protection':LIVE.on?'tado° X · 4 radiators':'tado° · 4 zones · Geofencing: Away',`<button class="btn" data-tado="off">Turn off all rooms</button>${LIVE.on?'<button class="btn" data-tado="resume">Resume schedules</button>':''}<button class="btn primary" data-tado="boost">Boost heating</button>`)+`
    <div class="grid">${ids('climate.').map(climateCard).join('')}
    ${aqCard()}</div>`;
 }
@@ -901,7 +902,8 @@ const LIVE=(()=>{
       else if(d==='binary_sensor'){e.available=ok(s);e.on=s?.state==='on';if(s)e.last=ago(s.last_changed)}
       else if(d==='climate'){e.available=ok(s);if(!e.available)continue;const a=s.attributes;
         e.cur=+(a.current_temperature??e.cur);e.target=+(a.temperature??e.target);const h=num(`sensor.${id.slice(8)}_humidity`);if(h!=null)e.hum=Math.round(h);
-        e.preset=s.state==='off'?'Off':'Heating';L.snap[id]=snapOf(e)}
+        // tado X exposes no boost flag; Boost = the 25 °C timer it sets
+        e.preset=s.state==='off'?'Off':s.state==='auto'?'Schedule':e.target>=25?'Boost':'Manual';L.snap[id]=snapOf(e)}
       else if(d==='media_player'){e.available=ok(s);if(s){e.on=!['off','standby'].includes(s.state);e.state=s.state}}}
     const aq=S['sensor.air_quality_monitor'];aq.available=num('sensor.air_quality_pm25')!=null;
     if(aq.available)Object.assign(aq,{pm25:num('sensor.air_quality_pm25'),co2:num('sensor.air_quality_co2'),hum:num('sensor.air_quality_humidity'),temp:num('sensor.air_quality_temperature'),rating:(st('sensor.air_quality_rating')?.state||'').replace('_',' ')});
@@ -933,7 +935,7 @@ const LIVE=(()=>{
   L.push=()=>{for(const [id,p] of Object.entries(L.snap)){const e=S[id],d=id.split('.')[0];if(!e.available)continue;
       const was=JSON.stringify(p),now=JSON.stringify(snapOf(e));if(was!==now)pend[id]={ref:H().states[id],until:Date.now()+5000};
       if(d==='climate'){if(e.target!==p.target)call('climate','set_temperature',{entity_id:id,temperature:e.target});
-        if(e.preset!==p.preset)call('climate','set_hvac_mode',{entity_id:id,hvac_mode:/Off|Frost/.test(e.preset)?'off':'heat'})}
+        if(e.preset!==p.preset&&/Off|Frost|Schedule/.test(e.preset))call('climate','set_hvac_mode',{entity_id:id,hvac_mode:e.preset==='Schedule'?'auto':'off'})}
       else if(!e.on&&p.on)call(d,'turn_off',{entity_id:id});
       else if(e.on&&(!p.on||e.bri!==p.bri||e.kelvin!==p.kelvin||e.rgb!==p.rgb)){const data={entity_id:id};
         if(d==='light'&&!e.nodim){data.brightness_pct=e.bri;if(e.rgb&&e.rgb!==p.rgb)data.rgb_color=rgbOf(e.rgb);else if(e.kelvin&&(e.kelvin!==p.kelvin||!p.on))data.color_temp_kelvin=e.kelvin}
@@ -949,6 +951,12 @@ const LIVE=(()=>{
     if(d.repeat){call('input_number','set_value',{entity_id:'input_number.robot_passes',value:+d.repeat});return true}
     if(d.vac==='start'){call('script','turn_on',{entity_id:'script.robot_clean_selected_rooms'});toast(`Cleaning ${v.rooms.map(roomName).join(', ')} · ${v.repeat}× · ${v.fan}`);return true}
     if(d.vac){call('vacuum',{all:'start',pause:'pause',dock:'return_to_base'}[d.vac],{entity_id:VAC});toast({all:'Cleaning the whole flat',pause:'Robot paused',dock:'Robot returning to dock'}[d.vac]);return true}
+    if(d.cmode){const e=S[d.room];pend[d.room]={ref:H().states[d.room],until:Date.now()+8000};
+      if(d.cmode==='Boost'){call('tado_x','set_climate_timer',{entity_id:d.room,temperature:25,duration:30});e.target=25}
+      else call('climate','set_hvac_mode',{entity_id:d.room,hvac_mode:d.cmode==='Off'?'off':'auto'});
+      e.preset=d.cmode;L.snap[d.room]=snapOf(e);render();toast(`${e.name}: ${d.cmode==='Boost'?'boost for 30 min':d.cmode==='Off'?'heating off':'back on schedule'}`);return true}
+    if(d.tado){call('button','press',{entity_id:`button.home_${{boost:'boost_all',off:'turn_off_all',resume:'resume_schedules'}[d.tado]}`});
+      toast({boost:'Boosting all rooms',off:'Heating off in all rooms',resume:'All rooms back on schedule'}[d.tado]);return true}
     if('wpower' in d){const w=S['sensor.washer'];w.power=!w.power;call('switch',w.power?'turn_on':'turn_off',{entity_id:'switch.kitchen_washing_machine_power'});toast(w.power?'Washer on':'Washer off');render();return true}
     if(d.wprog){call('select','select_option',{entity_id:'select.kitchen_washing_machine_selected_program',option:d.wprog});S['sensor.washer'].selected=d.wprog;render();return true}
     if(d.wash){const w=S['sensor.washer'];
