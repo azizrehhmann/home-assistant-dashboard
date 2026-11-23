@@ -259,6 +259,10 @@ views:
           - type: tile
             entity: binary_sensor.main_door
           - type: tile
+            entity: light.hallway_light
+            features_position: bottom
+            features: [{type: light-brightness}, {type: light-color-temp}]
+          - type: tile
             entity: binary_sensor.hallway_motion
           - type: tile
             entity: climate.bathroom

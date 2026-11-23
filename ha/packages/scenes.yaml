@@ -26,8 +26,8 @@ scene:
     icon: mdi:weather-night
     entities:
       light.bedroom_ceiling: "off"
-      light.bedside_lamp: {state: "on", brightness_pct: 10, color_temp_kelvin: 2200}
-      light.bedside_lamp_2: "off"
+      light.bedside_lamp: {state: "on", brightness_pct: 30, color_temp_kelvin: 2200}
+      light.bedside_lamp_2: {state: "on", brightness_pct: 30, color_temp_kelvin: 2200}
       light.living_room_light_1: "off"
       light.living_room_light_2: "off"
       light.living_room_lamp: "off"

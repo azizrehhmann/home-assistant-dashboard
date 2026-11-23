@@ -55,6 +55,7 @@ automation:
           - light.bedside_lamp
           - light.bedside_lamp_2
           - light.bedroom_ceiling
+          - light.hallway_light
           - light.living_room_light_1
           - light.living_room_light_2
         from: ['off', 'unavailable']
@@ -99,3 +100,47 @@ automation:
         data:
           color_temp_kelvin: "{{ state_attr('sensor.light_mode', 'kelvin') }}"
           transition: 60
+
+  - id: bedside_lamps_mirror
+    alias: Lights · bedside lamps share brightness and colour
+    description: >-
+      When you (or a device) change one bedside lamp, the other takes the same brightness and colour if it is on.
+      On/off stays independent. Ignores automation-made changes, which is what prevents loops.
+    mode: restart
+    triggers:
+      - trigger: state
+        entity_id: [light.bedside_lamp, light.bedside_lamp_2]  # no from/to: a from/to filter would hide brightness and colour changes
+    conditions:
+      - "{{ trigger.to_state.state == 'on' and trigger.from_state is not none and trigger.from_state.state in ['on', 'off'] }}"
+      - "{{ trigger.to_state.context.parent_id is none }}"
+    actions:
+      # let a quick dim finish and the time-of-day turn-on settle before copying
+      - delay: 1.5
+      - variables:
+          other: "{{ 'light.bedside_lamp_2' if trigger.entity_id == 'light.bedside_lamp' else 'light.bedside_lamp' }}"
+          # a lamp that was just switched on takes the other lamp's setting; otherwise the changed lamp is the source
+          turned_on: "{{ trigger.from_state.state == 'off' }}"
+          src: "{{ other if turned_on else trigger.entity_id }}"
+          dst: "{{ trigger.entity_id if turned_on else other }}"
+          a: "{{ states[src].attributes if is_state(src, 'on') else none }}"
+          b: "{{ states[dst].attributes if is_state(dst, 'on') else none }}"
+      - condition: template
+        value_template: >-
+          {{ a is not none and b is not none and a.brightness is not none and
+             (((a.brightness | int) - (b.brightness | default(0) | int)) | abs > 3 or
+              ((a.color_temp_kelvin | default(0) | int) - (b.color_temp_kelvin | default(0) | int)) | abs > 50 or
+              a.color_mode != b.color_mode) }}
+      - choose:
+          - conditions: "{{ a.color_mode == 'xy' }}"
+            sequence:
+              - action: light.turn_on
+                target: {entity_id: "{{ dst }}"}
+                data:
+                  xy_color: "{{ a.xy_color }}"
+                  brightness: "{{ a.brightness }}"
+        default:
+          - action: light.turn_on
+            target: {entity_id: "{{ dst }}"}
+            data:
+              color_temp_kelvin: "{{ a.color_temp_kelvin }}"
+              brightness: "{{ a.brightness }}"

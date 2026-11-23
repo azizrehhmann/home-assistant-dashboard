@@ -11,7 +11,10 @@
 | Lamps on at sunset | Sunset −15 min, someone home → living room lamp on, Studio lamp 60 % at 2700 K |
 | Weekday wake-up light | Mon–Fri, 20 min before the wake time: bedside lamp 1 % → 80 %, 2200 → 3500 K; at wake time the bathroom heats to 22 ° for 60 min. On/off + time on the dashboard (Home → Now) |
 | Balcony lights | Sunset on, 23:00 off (waits for the plug to be paired) |
-| Kitchen motion light | Motion → ceiling 100 % 4000 K (22:00–06:00: 15 % 2200 K); off 3 min after the motion stops |
+| Kitchen motion light | Motion, when off and dark (< 30 lx) → ceiling at the time-of-day level; off 3 min after the motion stops |
+| Hallway motion light | Motion, when off and dark (< 40 lx) → hallway light at the time-of-day level; off 2 min after the motion stops |
+| Time-of-day lighting | `sensor.light_mode` (morning 70 % 3000 K, day 80 % 4000 K, evening 55 % 2700 K, night 25 % 2202 K) applies to every light switched on; lights already on shift warmth when it changes |
+| Bedside lamps paired | Dimming or colour change on one lamp is copied to the other when both are on; on/off stays independent |
 | Studio presence | Meross presence + below 150 lx → lamp on, warmth by time of day; empty 5 min → Studio lights off |
 | Washer done | Push to the iPhone; 08:00–22:00 and someone home → the Echo in the occupied room announces it |
 | Everyone left | Nobody home 5 min → all lights + rice cooker off, push if a door is open |
@@ -30,15 +33,17 @@ Everything below is the original catalogue, kept for reference. Tier 1 automatio
 | 1 | **tado slow refresh** | Every 30 min, the tado cloud entities update once. That's about 48 calls a day, under the free 100. Needed because polling is off (deploy C1). | tado cloud | Tools → States: `climate.*_tado` last-updated moves every 30 min |
 | 2 | **Studio presence light** | Any Meross zone occupied **and** below 150 lux → Studio Lamp on. Warmth follows the time of day: 4000 K daytime, 3000 K evening, 2200 K late. | Meross MS605 (zones + lux), Studio Lamp | Walk in with the room dim; then cover the sensor's light window |
 | 3 | **Studio empty → off** | All three zones clear for 5 min → both Studio lights fade off. | Meross, Studio lights | Leave the room and wait 5 min |
-| 4 | **Kitchen motion light** | Motion → ceiling on: 100% 4000 K by day, **15% 2200 K at night**. Off 3 min after the motion stops. | MYGGSPRAY, kitchen ceiling | Wave at the sensor at 23:30 |
+| 4 | **Kitchen motion light** | Motion → ceiling on at the time-of-day level (`sensor.light_mode`), only if it is off and dark. Off 3 min after the motion stops. | MYGGSPRAY, kitchen ceiling | Wave at the sensor at 23:30 |
 | 5 | **Washer done** | The "program finished" event → an Echo **in the room you're in** announces it (presence decides Studio / Kitchen / Living room). Only 08:00–22:00 and when you're home. A phone push always goes out. | Home Connect, Meross, MYGGSPRAY, Echo Dots | Run a short program |
 | 6 | **Balcony door → heating pause** | Door open 2 min → living-room tado off. Closed → heating back on. | Door sensor, tado (HomeKit) | Open the balcony door for 2 min |
 | 7 | **Rice-cooker timeout** | Plug on for 90 min → off, plus a push. A safety net for forgotten cookers. | Wi-Fi plug | Set `for:` to 1 min temporarily |
 | 8 | **Leaving home** | Phone leaves home for 5 min → all lights off, plug off, a push **if a door is open**, and the robot cleans your selected rooms (if it hasn't run in 20 h). | Phone, lights, doors, Roborock | Tools → States: set `person.aziz` to `not_home` |
 | 9 | **Welcome home** | Main door opens within 10 min of you arriving, after dark, with every light off → living room 70% at 2700 K, and the robot docks if it's still cleaning. | Door sensor, phone, ceiling lights, Roborock | Arrive after sunset |
-| 10 | **Weekday wake-up light** | 20 min before your wake time, the bedside lamp rises from 1% at 2200 K to 80% at 3500 K. At wake time the bathroom heats to 22° and the Echo says "good morning" (your Alexa briefing). On/off and time are on the dashboard. | Bedside lamp, tado, Echo | Set the wake time 21 min ahead |
+| 10 | **Weekday wake-up light** | 20 min before your wake time, both bedside lamps rise from 1% at 2200 K to 80% at 3500 K. At wake time the bathroom heats to 22° and the Echo says "good morning" (your Alexa briefing). On/off and time are on the dashboard. | Bedside lamp, tado, Echo | Set the wake time 21 min ahead |
 | 11 | **Movie mode** | TV turns on after dark → *Movie* scene: ceiling off, lamp 20%, Govee strip on. | Hisense TV, lights, Govee | Turn the TV on in the evening |
 | 12 | **Air-quality alert** | PM2.5 above 25 µg/m³ for 10 min → push "air the room". Starts working once the IKEA monitor is back online. | IKEA air-quality monitor | Tools → States: set the PM2.5 sensor to 30 |
+| 13 | **Hallway motion light** | Motion in the hallway, when the light is off and it is dark (< 40 lx) → hallway light on at the time-of-day level. Off 2 min after the motion stops. | MYGGSPRAY motion sensor (hallway) |
+| 14 | **Bedside lamps paired** | Dim or recolour either bedside lamp and the other follows. A lamp switched on takes the other lamp's setting. On/off stays independent; the Night scene, long-press and wake-up use both lamps. | Both bedside lamps |
 
 ## Tier 1: vacation mode (ready)
 
@@ -69,7 +74,7 @@ Everything below is the original catalogue, kept for reference. Tier 1 automatio
 | **BILRESA scroll wheels as dimmers**: turning dims the room's lights live; press toggles; double press cycles scenes (Living → Movie, Bedroom → Night, Studio → Focus). The bedroom dual button: top = bedside lamps, bottom = *Good night*. | Needs the real event names after pairing, and ideally the BILRESA integration for live turning (deploy B8). |
 | **Studio zones by purpose**: desk zone → task light at 4000 K; sofa zone → warm lamp only; door zone → only briefly. | Needs the zone names from you (what each of the 3 zones covers). |
 | **Circadian lighting everywhere**: every IKEA light follows the sun's warmth through the day. | Best done with **Adaptive Lighting** from Marketplace rather than hand-written rules. Install it after pairing and exclude the Govee strip. |
-| **Good night** (one tap or the BILRESA bottom button): everything off except the bedside lamp at 10%, then a check that doors are closed, the rice cooker is off and the robot is docked, spoken by the bedroom Echo only if something's wrong. | Needs the button events. |
+| **Good night** (one tap or the BILRESA bottom button): everything off except the bedside lamps at 30%, then a check that doors are closed, the rice cooker is off and the robot is docked, spoken by the bedroom Echo only if something's wrong. | Needs the button events. |
 | **Laundry left in the drum**: washer finished but door not opened within 45 min → a second reminder. | Needs to confirm that the Home Connect door sensor updates after the program ends. |
 | **Robot when nobody's home**: on weekdays, if you leave between 08:00 and 17:00 and the last clean was more than 2 days ago → clean everything at Turbo. | Tune once there's real history. |
 | **Echo follow-me announcements**: a script `announce_here(message)` used by every automation, picking the Echo in the occupied room. | Generalises #5. Worth doing once 3+ automations announce things. |

@@ -293,7 +293,8 @@ const ic=(n,c='i')=>`<svg class="i ${c==='sm'?'sm':''}" viewBox="0 0 24 24" aria
 const S={
  'light.bedroom_ceiling':{name:'Bedroom light',area:'bedroom',icon:'ceiling',on:false,bri:70,kelvin:3000,src:'IKEA · Matter'},
  'light.bedside_lamp':{name:'Bedside Lamp',area:'bedroom',icon:'lamp',on:true,bri:35,kelvin:2200,src:'IKEA · Matter'},
- 'light.bedside_lamp_2':{name:'Bedside Lamp 2',area:'bedroom',icon:'lamp',on:false,bri:35,kelvin:2200,src:'IKEA · Matter'},
+ 'light.bedside_lamp_2':{name:'Bedside Lamp 2',area:'bedroom',icon:'lamp',on:true,bri:35,kelvin:2200,src:'IKEA · Matter'},
+ 'light.hallway_light':{name:'Hallway light',area:'hallway',icon:'ceiling',on:false,bri:60,kelvin:2700,src:'IKEA · Matter'},
  'light.living_room_light_1':{name:'Ceiling light 1',area:'living',icon:'ceiling',on:true,bri:80,kelvin:2700,src:'IKEA · Matter'},
  'light.living_room_light_2':{name:'Ceiling light 2',area:'living',icon:'ceiling',on:true,bri:80,kelvin:2700,src:'IKEA · Matter'},
  'light.living_room_lamp':{name:'Living room lamp',area:'living',icon:'lamp',on:false,bri:60,src:'Wi-Fi'},
@@ -941,7 +942,7 @@ function build3d(){
   const LP=[['light.living_room_light_1',2.0,2.3,2.1,'pendant'],['light.living_room_light_2',4.6,2.3,2.1,'pendant'],['light.living_room_lamp',.9,1.34,1.75,'arc'],
     ['light.tv_lights',1.79,4.1,1.05,'strip'],['light.studio_light',8.0,2.1,2.45,'flush'],['light.studio_lamp',9.5,2.05,1.55,'tripod'],
     ['light.bedroom_ceiling',1.97,6.4,2.45,'flush'],['light.bedside_lamp',.42,5.86,.5,'table'],['light.bedside_lamp_2',.42,8.36,.5,'table'],
-    ['light.kitchen_ceiling',5.15,7.1,2.45,'flush'],['light.balcony_lights',5.35,-.24,2.0,'wall']];
+    ['light.kitchen_ceiling',5.15,7.1,2.45,'flush'],['light.hallway_light',6.2,4.9,2.45,'flush'],['light.balcony_lights',5.35,-.24,2.0,'wall']];
   const L3=LP.map(([id,x,z,y,type])=>{
     const glowM=new THREE.MeshStandardMaterial({color:lin('#f5f1ea'),roughness:.6,emissive:new THREE.Color(0)});mats.push(glowM);
     let ly=y, lightPos;
@@ -1053,7 +1054,7 @@ const scene={
  morning:()=>{set('light.bedroom_ceiling',1,60,4000);set('light.bedside_lamp',1,80,4000);set('light.kitchen_ceiling',1,100,4000);ids('climate.').forEach(k=>S[k].preset='Home')},
  focus:()=>{set('light.studio_light',1,100,4000);set('light.studio_lamp',1,80,4000)},
  movie:()=>{set('light.living_room_light_1',0);set('light.living_room_light_2',0);set('light.living_room_lamp',1,20);set('light.tv_lights',1,60);S['media_player.soundbar'].on=true},
- night:()=>{ids('light.').forEach(k=>S[k].on=false);set('light.bedside_lamp',1,10,2200)},
+ night:()=>{ids('light.').forEach(k=>S[k].on=false);set('light.bedside_lamp',1,30,2200);set('light.bedside_lamp_2',1,30,2200)},
  away:()=>{ids('light.').forEach(k=>S[k].on=false);S['switch.rice_cooker'].on=false;ids('climate.').forEach(k=>S[k].preset='Away');simStart(S[VAC].rooms.length?S[VAC].rooms:VAC_ROOMS)},
 };
 function set(id,on,bri,k){const e=S[id];e.on=!!on;if(bri)e.bri=bri;if(k&&e.kelvin)e.kelvin=k}
