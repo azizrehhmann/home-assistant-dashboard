@@ -23,6 +23,7 @@ Confirmed with Aziz on 2026-11-21. Each physical device listed once (many also a
 | Kitchen | Rice cooker plug | Wi-Fi (Tuya or Tapo) |
 | Kitchen | Siemens washing machine WG44B2040 | Home Connect (remote power-on works; starting needs Remote Start pressed on the machine) |
 | Kitchen | Echo Dot | Alexa Devices |
+| Living room / Kitchen / Studio | Echo Dot ×3 + Alexa speaker groups | Alexa Devices; Music tab plays Spotify / YouTube Music via `send_text_command` |
 | Hallway | Hallway light | IKEA → Matter (`light.hallway_light`, motion-controlled) |
 | Hallway | Hallway motion sensor | IKEA → Matter |
 | Hallway | Main Door Sensor | IKEA → Matter |

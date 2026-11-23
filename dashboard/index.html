@@ -222,7 +222,7 @@ h2 .end{margin-left:auto}
   .phone-only{display:grid!important}
   .tabbar{display:flex;position:fixed;z-index:40;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));
     bottom:calc(12px + env(safe-area-inset-bottom,0px));justify-content:space-around;padding:6px;border-radius:30px}
-  .tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px;border-radius:22px;font-size:10.5px;font-weight:600;color:var(--fg-2);text-decoration:none;min-width:0}
+  .tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0;border-radius:22px;font-size:10px;font-weight:600;color:var(--fg-2);text-decoration:none;min-width:0;letter-spacing:-.01em}
   .tabbar a span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tabbar a[aria-current="page"]{background:var(--glass-strong);color:var(--accent)}
   .toast{bottom:calc(100px + env(safe-area-inset-bottom,0px))}
@@ -234,6 +234,20 @@ h2 .end{margin-left:auto}
 @keyframes pulse{50%{opacity:.35}}
 .pulse{animation:pulse 1.6s ease-in-out infinite}
 .note{font-size:12.5px;color:var(--fg-3)}
+.mu-rooms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 12px}
+.mu-room{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:18px;background:var(--hair);border:1.5px solid transparent;font-weight:600;font-size:13.5px;color:var(--fg-2);transition:background .2s,border-color .2s}
+.mu-room .i{width:26px;height:26px}
+.mu-room[aria-pressed="true"]{background:var(--glass-strong);color:var(--fg);border-color:var(--accent)}
+.mu-in{width:100%;box-sizing:border-box;padding:12px 16px;border-radius:14px;border:1px solid var(--hair);background:var(--hair);color:inherit;font:inherit}
+.mu-now{display:flex;gap:14px;align-items:center;min-width:0}.mu-txt{min-width:0}.mu-txt b{display:block;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mu-txt small{display:block;color:var(--fg-3);font-size:13px;margin-top:2px}
+.mu-cover{width:72px;height:72px;border-radius:16px;background:var(--hair);object-fit:cover;flex:none;display:grid;place-items:center;color:var(--fg-3)}.mu-cover .i{width:28px;height:28px}
+.mu-ctrl{display:flex;gap:10px;justify-content:center;margin:16px 0 4px}.mu-ctrl .btn{width:48px;height:48px;padding:0}
+.mu-vol{display:grid;grid-template-columns:84px minmax(0,1fr) 40px;align-items:center;gap:10px;font-size:13px;padding:6px 0}.mu-vol b{text-align:right;font-weight:600}
+.mu-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.mu-steps{margin:8px 0 12px;padding-left:20px;font-size:13.5px;color:var(--fg-2);line-height:1.5}.mu-steps li+li{margin-top:6px}.mu-steps a{color:var(--accent)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+a.btn{text-decoration:none;color:inherit}
+
 .arow{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--hair)}.arow:first-child{border-top:0;padding-top:0}.arow:last-child{padding-bottom:0}
 .arow .atx{flex:1;min-width:0;display:grid;gap:3px}.arow .atx small{color:var(--fg-2);font-size:13px;line-height:1.35}.arow .aact{display:flex;align-items:center;gap:6px;flex:none}
 .afield{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--hair);font-size:14px}.afield .vin{margin:0;width:auto;max-width:150px}.afield.full{grid-template-columns:1fr}.afield.full .vin{max-width:none;width:100%}
@@ -257,6 +271,12 @@ const P={
  climate:'<path d="M14 14.8V5a2 2 0 1 0-4 0v9.8a4 4 0 1 0 4 0z"/><path d="M12 9v7"/>',
  appl:'<rect x="4" y="2.5" width="16" height="19" rx="3"/><circle cx="12" cy="13" r="4.5"/><path d="M8 6h.01M11 6h.01"/>',
  shield:'<path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+ music:'<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+ mprev:'<path d="M19 5v14L9 12z"/><path d="M5 5v14"/>',
+ mnext:'<path d="M5 5v14l10-7z"/><path d="M19 5v14"/>',
+ mpause:'<path d="M8 5v14M16 5v14"/>',
+ mplay:'<path d="M7 4.5v15l12-7.5z"/>',
+ mstop:'<rect x="6" y="6" width="12" height="12" rx="2"/>',
  cube:'<path d="M12 2.5l8.5 4.8v9.4L12 21.5l-8.5-4.8V7.3z"/><path d="M12 12l8.5-4.7M12 12v9.5M12 12L3.5 7.3"/>',
  bulb:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
  lamp:'<path d="M8 3h8l3 8H5z"/><path d="M12 11v8M8 21h8"/>',
@@ -322,9 +342,9 @@ const S={
  'vacuum.roborock_q5_pro':{name:'Roborock Q5 Pro',area:'studio',status:'Docked',battery:100,fan:'Balanced',rooms:['living','kitchen','hallway'],repeat:1,room:null,pass:0,cleaned:0,lastClean:'Yesterday · 38 m²'},
  'media_player.living_room_tv':{name:'Hisense TV',area:'living',on:false,available:false,icon:'tv'},
  'media_player.soundbar':{name:'Philips HTL3320',area:'living',on:false,icon:'speaker'},
- 'media_player.echo_kitchen':{name:'Kitchen Echo Dot',area:'kitchen',icon:'echo'},
- 'media_player.echo_living_room':{name:'Living room Echo Dot',area:'living',icon:'echo'},
- 'media_player.echo_studio':{name:'Studio Echo Dot',area:'studio',icon:'echo'},
+ 'media_player.echo_kitchen':{name:'Kitchen Echo Dot',area:'kitchen',icon:'echo',vol:30},
+ 'media_player.echo_living_room':{name:'Living room Echo Dot',area:'living',icon:'echo',vol:30},
+ 'media_player.echo_studio':{name:'Studio Echo Dot',area:'studio',icon:'echo',vol:30},
  'event.bedroom_dual_button':{name:'BILRESA dual button',area:'bedroom',last:'Top · single press'},
  'event.bedroom_scroll_wheel':{name:'BILRESA scroll wheel',area:'bedroom',last:'Rotate ↑'},
  'event.living_room_scroll_wheel':{name:'BILRESA scroll wheel',area:'living',last:'Press'},
@@ -335,7 +355,7 @@ const ROOMS=[
  {id:'kitchen',name:'Kitchen',m2:6.7},{id:'bathroom',name:'Bathroom',m2:5.3},{id:'hallway',name:'Hallway',m2:6.4},{id:'balcony',name:'Balcony',m2:5.1}];
 const VAC_ROOMS=['living','studio','bedroom','kitchen','hallway','bathroom'];
 const FANS=['Quiet','Balanced','Turbo','Max','Max+'];
-const VIEWS=[['home','Home','home'],['rooms','Rooms','rooms'],['climate','Climate','climate'],['appliances','Appliances','appl','Devices'],['security','Security','shield'],['automations','Automations','flow','Auto'],['3d','3D Home','cube','3D']];
+const VIEWS=[['home','Home','home'],['rooms','Rooms','rooms'],['climate','Climate','climate','Heat'],['appliances','Appliances','appl','Devices'],['security','Security','shield','Safety'],['automations','Automations','flow','Auto'],['music','Music','music'],['3d','3D Home','cube','3D']];
 const VAC='vacuum.roborock_q5_pro';
 
 const ids=(pre,area)=>Object.keys(S).filter(k=>k.startsWith(pre)&&(!area||S[k].area===area));
@@ -558,7 +578,7 @@ function vAppliances(){
      <div class="kv"><span>${ic('speaker')}Philips HTL3320</span><b>${S['media_player.soundbar'].on?'On':'Standby'}</b></div>
      <div class="kv"><span>${ic('strip')}Govee TV lights</span><button class="btn small" data-adjust="light.tv_lights">${S['light.tv_lights'].on?S['light.tv_lights'].bri+'% · colour':'Off · adjust'}</button></div>
      <div class="row" style="margin-top:12px"><button class="btn primary" data-scene="movie">Movie mode</button></div></div>
-   <div class="card glass"><h3>Echo Dots</h3><input id="annText" type="text" placeholder="Message to announce" aria-label="Message to announce" style="width:100%;box-sizing:border-box;margin:6px 0 4px;padding:10px 14px;border-radius:14px;border:1px solid var(--hair);background:var(--hair);color:inherit;font:inherit">${echo.length>1?`<div class="kv"><span>${ic('echo')}All Echo Dots</span><button class="btn small" data-announce="all">Announce</button></div>`:''}${echo.map(k=>`<div class="kv"><span>${ic('echo')}<span>${S[k].name}${echoInfo(S[k])?`<br><small class="note">${echoInfo(S[k])}</small>`:''}</span></span><button class="btn small" data-announce="${k}">Announce</button></div>`).join('')}</div>
+   <div class="card glass"><h3>Echo Dots<a class="btn small" href="#music" style="text-decoration:none">${ic('music')}Music</a></h3><input id="annText" type="text" placeholder="Message to announce" aria-label="Message to announce" style="width:100%;box-sizing:border-box;margin:6px 0 4px;padding:10px 14px;border-radius:14px;border:1px solid var(--hair);background:var(--hair);color:inherit;font:inherit">${echo.length>1?`<div class="kv"><span>${ic('echo')}All Echo Dots</span><button class="btn small" data-announce="all">Announce</button></div>`:''}${echo.map(k=>`<div class="kv"><span>${ic('echo')}<span>${S[k].name}${echoInfo(S[k])?`<br><small class="note">${echoInfo(S[k])}</small>`:''}</span></span><button class="btn small" data-announce="${k}">Announce</button></div>`).join('')}</div>
    </div>`;
 }
 function vSecurity(){
@@ -592,7 +612,7 @@ const fallbackPlan=()=>{const lit=(a)=>lightsOn(a).length?'lit':'';return `<svg 
  <rect class="rm ${lit('hallway')}" x="280" y="340" width="290" height="85" rx="6"/><text x="425" y="388" text-anchor="middle">Hallway</text>
  <rect class="rm ${lit('kitchen')}" x="280" y="425" width="150" height="145" rx="6"/><text x="355" y="500" text-anchor="middle">Kitchen</text>
  <rect class="rm ${lit('bathroom')}" x="430" y="425" width="140" height="145" rx="6"/><text x="500" y="500" text-anchor="middle">Bathroom</text></svg>`};
-const RENDER={home:vHome,rooms:vRooms,climate:vClimate,appliances:vAppliances,security:vSecurity,automations:vAutomations,'3d':v3d};
+const RENDER={home:vHome,rooms:vRooms,climate:vClimate,appliances:vAppliances,security:vSecurity,automations:vAutomations,music:vMusic,'3d':v3d};
 
 /* ---------- shell + routing ---------- */
 let view='home';
@@ -601,7 +621,7 @@ function nav(){
   document.getElementById('side').innerHTML=`<div class="brand"><span>${ic('home')}</span>Aziz Home</div>${VIEWS.map(v=>link(...v)).join('')}<div class="foot"><span>Appearance</span>${themeSeg()}<span>${typeof LIVE!=='undefined'&&LIVE.on?'Live · Home Assistant':'Mock data · Home Assistant preview'}</span></div>`;
   document.getElementById('tabbar').innerHTML=VIEWS.map(([id,n,i,sh])=>`<a href="#${id}" ${id===view?'aria-current="page"':''} aria-label="${n}">${ic(i)}<span>${sh||n}</span></a>`).join('');
 }
-function render(){nav();document.getElementById('main').innerHTML=vacBanner()+RENDER[view]();tick();if(view==='3d')mount3d();else T3.stop?.();}
+function render(){nav();document.getElementById('main').innerHTML=vacBanner()+RENDER[view]();tick();if(view==='3d')mount3d();else T3.stop?.();if(view==='music')muEnter();}
 function route(){const h=location.hash.slice(1);view=RENDER[h]?h:'home';render();window.scrollTo(0,0)}
 function tick(){const c=document.getElementById('clock');if(c)c.textContent=new Date().toLocaleString(undefined,{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}
 setInterval(tick,30000);
@@ -661,6 +681,7 @@ function endVac(){const V=S[VAC_ID],was=V.on;V.on=false;V.scheduled=false;ids('l
 
 function drawSheet(){
   if(sheetId==='vacation')return drawVac();
+  if(sheetId==='music')return drawMusicSheet();
   if(sheetId.startsWith('auto:'))return drawAuto();
   const e=S[sheetId],g=glow(e);
   document.getElementById('sheet').style.setProperty('--glow',g||'var(--on-warm)');
@@ -1049,6 +1070,121 @@ function build3d(){
   T3.r=r;T3.resize=resize;T3.reset=reset;T3.ready=true;T3.retheme();
 }
 
+/* ---------- Music: Spotify / YouTube Music on the Echo Dots, through Alexa ----------
+   Playback = alexa_devices.send_text_command (what you'd say to Alexa). Rooms: one Echo, an Alexa speaker group for two rooms,
+   the "Everywhere" group for all three. Accounts are linked in the Alexa app; Spotify can also be linked in HA for now-playing. */
+const MU_ROOMS=[['kitchen','Kitchen','media_player.echo_kitchen'],['living','Living room','media_player.echo_living_room'],['studio','Studio','media_player.echo_studio']];
+const MU_SVC={spotify:'Spotify',ytm:'YouTube Music'}, MU_KINDS=[['any','Anything'],['playlist','Playlist'],['artist','Artist'],['album','Album']];
+const MU_GNAME={'kitchen,living':'Kitchen and Living Room','kitchen,studio':'Kitchen and Studio','living,studio':'Living Room and Studio'};
+const MU_GROUP_MODE='device'; // shortcut: group commands go to the group device; 'phrase' sends them to a member Echo with the group name instead (settled by a live test)
+let MU={rooms:['living'],src:'spotify',kind:'any',q:'',recent:[],last:null,paused:false,devs:null,devsAt:0,pl:null,plAt:0};
+try{const s=JSON.parse(localStorage.getItem('aziz-music')||'{}');if(Array.isArray(s.rooms)&&s.rooms.length&&s.rooms.every(r=>MU_ROOMS.some(m=>m[0]===r)))MU.rooms=s.rooms;
+  if(MU_SVC[s.src])MU.src=s.src;if(MU_KINDS.some(k=>k[0]===s.kind))MU.kind=s.kind;if(Array.isArray(s.recent))MU.recent=s.recent.slice(0,6);if(s.last)MU.last=s.last}catch(_){}
+const muSave=()=>{try{localStorage.setItem('aziz-music',JSON.stringify({rooms:MU.rooms,src:MU.src,kind:MU.kind,recent:MU.recent,last:MU.last}))}catch(_){}};
+const muRoom=(id)=>MU_ROOMS.find(r=>r[0]===id);
+const muEchoDev=(ent)=>LIVE.on?LIVE.H().entities?.[ent]?.device_id:'mock';
+const muSp=()=>{if(!LIVE.on)return null;const s=LIVE.H().states,k=Object.keys(s).find(x=>x.startsWith('media_player.spotify'));return k?{ent:k,st:s[k]}:null};
+function muGroup(R){ // the Alexa speaker group for exactly these rooms, from the HA device registry (mock: a few pretend groups)
+  if(!LIVE.on)return R.length===3||R.join()==='kitchen,living'?{id:'mock',name:R.length===3?'Everywhere':MU_GNAME[R.join()],ents:[]}:null;
+  const re={kitchen:/kitchen/i,living:/living/i,studio:/studio/i};
+  const g=(MU.devs||[]).filter(d=>/speaker group/i.test(d.model||'')).find(d=>{const n=d.name_by_user||d.name||'',m=Object.keys(re).filter(k=>re[k].test(n));
+    return R.length===3?(/everywhere/i.test(n)||m.length===3):(m.length===2&&R.every(k=>m.includes(k)))});
+  if(!g)return null;const E=LIVE.H().entities||{};
+  return {id:g.id,name:(g.name_by_user||g.name).replace(/\s*Speaker Group$/i,''),ents:Object.keys(E).filter(k=>E[k].device_id===g.id&&k.startsWith('media_player.'))}}
+function muTarget(){const R=MU.rooms.slice().sort(),n=R.length;
+  if(!n)return {ok:false,hint:'Pick at least one room',label:''};
+  const members=R.map(muRoom), label=n===3?'Everywhere':members.map(m=>m[1]).join(' + ');
+  if(n===1)return {ok:true,label,dev:muEchoDev(members[0][2]),devs:[muEchoDev(members[0][2])],ents:[members[0][2]],group:null,R};
+  const g=muGroup(R);
+  if(!g)return {ok:false,label,R,hint:n===3?'The “Everywhere” group is missing in Alexa.':`Create the speaker group “${MU_GNAME[R.join()]}” in the Alexa app, then reload Alexa Devices in Home Assistant.`};
+  return {ok:true,label,dev:g.id,devs:members.map(m=>muEchoDev(m[2])),ents:[...new Set([...members.map(m=>m[2]),...g.ents])],group:g,R}}
+const muPhrase=(q,src,kind)=>{const s=MU_SVC[src];return {any:`play ${q} on ${s}`,playlist:`play my ${q} playlist on ${s}`,artist:`play music by ${q} on ${s}`,album:`play the album ${q} on ${s}`}[kind]||`play ${q} on ${s}`};
+function muSend(T,text){let dev=T.dev,t=text;
+  if(T.group&&MU_GROUP_MODE==='phrase'){dev=T.devs[0];t=`${text} on ${T.group.name}`}
+  if(!LIVE.on){toast(`Alexa (demo): “${t}”`);return}
+  if(!dev)return toast('Echo not found in Home Assistant');
+  LIVE.call('alexa_devices','send_text_command',{device_id:dev,text_command:t})}
+function muPlay(q,src,kind,T,test){
+  if(!T.ok)return toast(T.hint);
+  muSend(T,muPhrase(q,src,kind));MU.last={q:test?'music':q,src,kind,label:T.label,t:Date.now()};MU.paused=false;
+  if(!test){MU.recent=[{q,src,kind,rooms:MU.rooms.slice()},...MU.recent.filter(r=>!(r.q===q&&r.src===src&&r.kind===kind))].slice(0,6)}
+  muSave();render();if(!LIVE.on)toast(`Playing ${q} on ${MU_SVC[src]} · ${T.label}`)}
+function muVolSet(room,v){const ent=muRoom(room)[2];if(LIVE.on)LIVE.call('media_player','volume_set',{entity_id:ent,volume_level:v/100});else S[ent].vol=v}
+const muVol=(ent)=>LIVE.on?Math.round((LIVE.H().states[ent]?.attributes?.volume_level??.3)*100):(S[ent].vol??30);
+function musicAct(d){
+  if(d.murm){const r=d.murm;MU.rooms=MU.rooms.includes(r)?MU.rooms.filter(x=>x!==r):[...MU.rooms,r];muSave();render();return}
+  if(d.musrc){MU.src=d.musrc;muSave();render();return}
+  if(d.mukind){MU.kind=d.mukind;muSave();render();return}
+  const T=muTarget();
+  switch(d.mu){
+    case 'everywhere':MU.rooms=MU_ROOMS.map(r=>r[0]);muSave();render();return;
+    case 'accounts':openSheet('music',document.activeElement);return;
+    case 'play':{const q=(document.getElementById('muQ')?.value||MU.q).trim();if(!q){toast('Type what to play');document.getElementById('muQ')?.focus();return}MU.q=q;return muPlay(q,MU.src,MU.kind,T)}
+    case 'recent':{const r=MU.recent[+d.i];if(!r)return;MU.rooms=r.rooms;MU.src=r.src;MU.kind=r.kind;return muPlay(r.q,r.src,r.kind,muTarget())}
+    case 'pl':{const p=MU.pl?.[+d.i];if(p)return muPlay(p.name,'spotify','playlist',T);return}
+    case 'test':return muPlay('music',d.svc,'any',T,true);
+    case 'pause':if(!T.ok)return toast(T.hint);MU.paused=!MU.paused;muSend(T,MU.paused?'pause':'resume');render();return;
+    case 'next':if(!T.ok)return toast(T.hint);return muSend(T,'next song');
+    case 'prev':if(!T.ok)return toast(T.hint);return muSend(T,'previous song');
+    case 'stop':{if(!T.ok)return toast(T.hint);muSend(T,'stop');if(LIVE.on)LIVE.call('media_player','media_stop',{entity_id:T.ents});MU.last=null;MU.paused=false;muSave();render();return}
+  }}
+async function muEnter(){ // live: load Alexa speaker groups (device registry) and Spotify playlists, then redraw once
+  if(!LIVE.on)return;let changed=false;
+  if(!MU.devs||Date.now()-MU.devsAt>6e4){MU.devsAt=Date.now();try{const r=await LIVE.H().callWS({type:'config/device_registry/list'});const old=JSON.stringify(MU.devs);MU.devs=r.filter(x=>/speaker group/i.test(x.model||''));changed=old!==JSON.stringify(MU.devs)}catch(_){MU.devs=MU.devs||[]}}
+  const sp=muSp();
+  if(sp&&(!MU.pl||Date.now()-MU.plAt>3e5)){MU.plAt=Date.now();try{const H=LIVE.H,root=await H().callWS({type:'media_player/browse_media',entity_id:sp.ent});
+      const pls=root.children?.find(c=>/playlist/i.test(c.title)),lst=pls&&await H().callWS({type:'media_player/browse_media',entity_id:sp.ent,media_content_id:pls.media_content_id,media_content_type:pls.media_content_type});
+      MU.pl=(lst?.children||[]).slice(0,12).map(c=>({name:c.title}))}catch(_){MU.pl=[]}changed=true}
+  if(changed&&view==='music')render()}
+function vMusic(){
+  const T=muTarget(),sp=muSp(),ss=sp?.st,spNow=ss&&['playing','paused'].includes(ss.state)?ss:null,L=MU.last;
+  const room=([id,n])=>`<button class="mu-room" data-murm="${id}" aria-pressed="${MU.rooms.includes(id)}">${ic('echo')}<span>${n}</span></button>`;
+  const seg=(items,cur,key,label)=>`<div class="seg full" role="group" aria-label="${label}">${items.map(([k,n])=>`<button data-${key}="${k}" aria-pressed="${cur===k}">${n}</button>`).join('')}</div>`;
+  const vol=MU.rooms.map(muRoom).map(([id,n,ent])=>`<div class="mu-vol"><span>${n}</span><input type="range" min="0" max="100" value="${muVol(ent)}" data-muvol="${id}" aria-label="${n} volume"><b id="muV-${id}">${muVol(ent)}%</b></div>`).join('');
+  const nowTxt=spNow?`<b>${esc(spNow.attributes.media_title||'')}</b><small>${esc(spNow.attributes.media_artist||'')} · Spotify${spNow.state==='paused'?' · paused':''}</small>`
+    :L?`<b>${esc(L.q)}</b><small>Requested on ${MU_SVC[L.src]} · ${esc(L.label)}${MU.paused?' · paused':''}</small>`:`<b>Nothing playing</b><small>Pick rooms and ask for something below</small>`;
+  const cover=spNow?.attributes.entity_picture?`<img class="mu-cover" src="${esc(spNow.attributes.entity_picture)}" alt="">`:`<div class="mu-cover">${ic('music')}</div>`;
+  return head('Music','Spotify and YouTube Music on your Echo Dots')+`<div class="grid">
+   <div class="card glass"><h3>Where<span class="pill ${T.ok?'ok':'warn'}">${T.ok?esc(T.label):'Not ready'}</span></h3>
+     <div class="mu-rooms">${MU_ROOMS.map(room).join('')}</div>
+     <div class="row"><button class="btn small" data-mu="everywhere">${ic('echo')}Everywhere</button></div>
+     ${T.ok?`<p class="note" style="margin:10px 0 0">${T.group?`Plays in sync through the Alexa group “${esc(T.group.name)}”.`:'One speaker.'}</p>`:`<p class="note" style="margin:10px 0 0">${esc(T.hint)}</p>`}</div>
+   <div class="card glass"><h3>Play</h3>
+     <div style="margin:12px 0 10px">${seg(Object.entries(MU_SVC),MU.src,'musrc','Music service')}</div>
+     <div style="margin:0 0 10px">${seg(MU_KINDS,MU.kind,'mukind','What kind')}</div>
+     <input id="muQ" class="mu-in" type="text" value="${esc(MU.q)}" placeholder="${MU.kind==='playlist'?'Playlist name':MU.kind==='artist'?'Artist':MU.kind==='album'?'Album':'Song, artist, genre…'}" aria-label="What to play" autocomplete="off">
+     <div class="row" style="margin-top:12px"><button class="btn primary" data-mu="play" ${T.ok?'':'disabled'}>${ic('mplay')}Play on ${MU_SVC[MU.src]}</button></div>
+     ${LIVE.on?'':`<p class="note" style="margin:10px 0 0">Demo: in Home Assistant this runs <code>alexa_devices.send_text_command</code>.</p>`}</div>
+   <div class="card glass"><h3>Now playing${(MU.last||spNow)?`<span class="pill ${MU.paused||spNow?.state==='paused'?'':'ok'}">${MU.paused||spNow?.state==='paused'?'Paused':'Playing'}</span>`:''}</h3>
+     <div class="mu-now" style="margin-top:12px">${cover}<div class="mu-txt">${nowTxt}</div></div>
+     <div class="mu-ctrl"><button class="btn" data-mu="prev" aria-label="Previous">${ic('mprev')}</button><button class="btn primary" data-mu="pause" aria-label="${MU.paused?'Resume':'Pause'}">${ic(MU.paused?'mplay':'mpause')}</button><button class="btn" data-mu="next" aria-label="Next">${ic('mnext')}</button><button class="btn" data-mu="stop" aria-label="Stop">${ic('mstop')}</button></div>
+     <div class="lbl">Volume</div>${vol||'<p class="note">Pick a room first.</p>'}
+     ${LIVE.on&&!spNow?`<p class="note" style="margin:10px 0 0">Echo Dots don't report what is playing. Connect Spotify in Home Assistant to see the real track here.</p>`:''}</div>
+   ${MU.recent.length?`<div class="card glass"><h3>Recent</h3><div class="mu-chips">${MU.recent.map((r,i)=>`<button class="btn small" data-mu="recent" data-i="${i}" title="${esc(r.rooms.map(x=>muRoom(x)[1]).join(' + '))}">${esc(r.q)} <small style="opacity:.6">· ${MU_SVC[r.src]}</small></button>`).join('')}</div></div>`:''}
+   ${MU.pl?.length?`<div class="card glass"><h3>Your Spotify playlists</h3><div class="mu-chips">${MU.pl.map((p,i)=>`<button class="btn small" data-mu="pl" data-i="${i}">${esc(p.name)}</button>`).join('')}</div></div>`:''}
+   <div class="card glass"><h3>Accounts</h3>
+     <div class="kv"><span>${ic('music')}Spotify</span><span class="pill">${sp?'Linked in HA':'via Alexa'}</span></div>
+     <div class="kv"><span>${ic('music')}YouTube Music</span><span class="pill">via Alexa</span></div>
+     <div class="row" style="margin-top:12px"><button class="btn primary" data-mu="accounts">Connect accounts</button></div></div>
+  </div>`}
+function drawMusicSheet(){
+  const sp=muSp(),T=muTarget();
+  document.getElementById('sheet').innerHTML=`
+   <div class="hd"><div class="ico">${ic('music')}</div><div><b id="sheetTitle">Connect your music</b><small>Both services play on the Echo Dots through Alexa</small></div></div>
+   <div class="lbl">Spotify</div>
+   <ol class="mu-steps"><li>Open the Alexa app → More → Settings → Music &amp; Podcasts → Link New Service → Spotify.</li>
+     <li>Optional, for the real now-playing and your playlists here: link Spotify in Home Assistant too. It needs Spotify Premium and a free developer app (<a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com</a>, redirect URI <code>https://my.home-assistant.io/redirect/oauth</code>).</li></ol>
+   <div class="row"><a class="btn small" href="https://alexa.amazon.de/spa/index.html" target="_blank" rel="noopener">Open Alexa settings</a>
+     <a class="btn small" href="https://my.home-assistant.io/redirect/config_flow_start/?domain=spotify" target="_blank" rel="noopener">${sp?'Spotify is linked in HA · manage':'Link Spotify in HA'}</a>
+     <button class="btn small" data-mu="test" data-svc="spotify" ${T.ok?'':'disabled'}>Test on ${esc(T.label||'a room')}</button></div>
+   <div class="lbl">YouTube Music</div>
+   <ol class="mu-steps"><li>Alexa app → More → Settings → Music &amp; Podcasts → Link New Service → YouTube Music, and sign in with Google.</li>
+     <li>The YouTube video app can't play on an Echo Dot. YouTube Music is the one that works.</li></ol>
+   <div class="row"><a class="btn small" href="https://alexa.amazon.de/spa/index.html" target="_blank" rel="noopener">Open Alexa settings</a>
+     <button class="btn small" data-mu="test" data-svc="ytm" ${T.ok?'':'disabled'}>Test on ${esc(T.label||'a room')}</button></div>
+   <p class="note" style="margin:14px 0 0">The test says “play music on …” to the selected rooms. If a service isn't linked, Alexa tells you out loud. Home Assistant can't see which music services Alexa has linked.</p>
+   <div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn primary" data-close>Done</button></div>`}
+
 /* ---------- actions (each becomes a hass.callService call after deployment) ---------- */
 const scene={
  morning:()=>{set('light.bedroom_ceiling',1,60,4000);set('light.bedside_lamp',1,80,4000);set('light.kitchen_ceiling',1,100,4000);ids('climate.').forEach(k=>S[k].preset='Home')},
@@ -1065,6 +1201,7 @@ document.addEventListener('click',e=>{
   const d=b.dataset,v=S[VAC];
   const keepOff=()=>toast('Vacation mode keeps lights and plugs off');
   if(LIVE.on&&LIVE.click(d))return;
+  if(d.murm||d.musrc||d.mukind||'mu' in d)return musicAct(d);
   if(d.vdstart){VD.startMode=d.vdstart;drawSheet()}
   else if(d.vdend){VD.endMode=d.vdend;drawSheet()}
   else if(d.vdevery){VD.robotEvery=+d.vdevery;drawSheet()}
@@ -1100,6 +1237,8 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{
   const t=e.target;
+  if(t.id==='muQ'){MU.q=t.value;return}
+  if(t.dataset.muvol){const v=document.getElementById('muV-'+t.dataset.muvol);if(v)v.textContent=t.value+'%';return}
   if(t.dataset.bri){S[t.dataset.bri].bri=+t.value;const st=t.closest('.tile').querySelector('.st');const en=S[t.dataset.bri];st.textContent=`${en.bri}%${en.kelvin?` · ${en.kelvin} K`:''}`;return}
   if(!sheetId)return;const en=S[sheetId];
   if(t.id==='sh-bri'){en.bri=+t.value;en.on=true;document.getElementById('shBriV').textContent=en.bri+'%'}
@@ -1109,9 +1248,10 @@ document.addEventListener('input',e=>{
   render();if(T3.ready)T3.sync();
 });
 document.addEventListener('change',e=>{const t=e.target;
+  if(t.dataset.muvol){muVolSet(t.dataset.muvol,+t.value);return}
   if(sheetId==='vacation'&&t.id?.startsWith('vd-')){if(t.value)VD[{'vd-start':'start','vd-end':'end','vd-time':'robotTime'}[t.id]]=t.value;drawSheet();return}
   if(t.dataset.bri)update();else if(sheetId&&e.target.id?.startsWith('sh-')){update()}});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sheetId)closeSheet()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sheetId)closeSheet();if(e.key==='Enter'&&e.target.id==='muQ')musicAct({mu:'play'})});
 
 /* ---------- live mode: inside Home Assistant (Webpage dashboard, same origin) read and drive real entities ---------- */
 const LIVE=(()=>{

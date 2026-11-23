@@ -258,3 +258,9 @@ The dashboard and packages use these IDs. For each one: Settings → Entities �
 - the Q5 Pro suction strings
 - humidity over HomeKit
 - whether `--ha-card-backdrop-filter`-style blur works without card-mod
+
+## Music on the Echo Dots (Music tab)
+The Music tab plays Spotify or YouTube Music on the three Echo Dots through Alexa (`alexa_devices.send_text_command`), so both services must be linked **in the Alexa app**.
+1. Alexa app → More → Settings → Music & Podcasts → Link New Service → **Spotify**, then **YouTube Music**. (The YouTube video app can't play on an Echo Dot.)
+2. Two rooms together need an Alexa **speaker group** per pair: Devices → + → Combine speakers → Speaker group. Name them `Kitchen and Living Room`, `Kitchen and Studio`, `Living Room and Studio`. `Everywhere` already exists. Then reload the **Alexa Devices** integration in HA; the groups show up as devices with model "Speaker Group".
+3. Optional, for real now-playing and your playlists in the dashboard: add the **Spotify** integration in HA (needs Spotify Premium and a free developer app; redirect URI `https://my.home-assistant.io/redirect/oauth`).
