@@ -1,0 +1,7 @@
+# End time of the current tado X timer/boost per room, written by the dashboard
+# (tado X exposes no overlay end time). Shown as a countdown on the Climate cards.
+input_datetime:
+  climate_timer_living_room: {name: Living room heating timer end, has_date: true, has_time: true}
+  climate_timer_studio: {name: Studio heating timer end, has_date: true, has_time: true}
+  climate_timer_bedroom: {name: Bedroom heating timer end, has_date: true, has_time: true}
+  climate_timer_bathroom: {name: Bathroom heating timer end, has_date: true, has_time: true}
