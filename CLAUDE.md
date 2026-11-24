@@ -22,7 +22,7 @@ In this folder, act as a **senior smart-home engineer / Home Assistant integrato
 
 ## Things to Remember
 - Rooms: Living Room, Studio, Bedroom, Kitchen, Bathroom, Passage/Hallway, Balcony.
-- IKEA DIRIGERA hub (Hallway) is the Matter bridge and Thread border router.
+- Thread network "tado-5ba4": border routers are the SONOFF Dongle Max (USB on the HA Green, OpenThread Border Router app) and the tado bridge. All IKEA devices pair straight to HA over Matter. The DIRIGERA hub was removed on 2026-11-24.
 
 ---
 

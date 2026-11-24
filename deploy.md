@@ -44,6 +44,8 @@ IKEA's new Thread devices are the BILRESA buttons and wheels, the MYGGSPRAY moti
 
 ## Phase B: IKEA (DIRIGERA) and Meross over Matter
 
+> **Update 2026-11-24:** done differently. Every IKEA device is paired straight to HA (none via the DIRIGERA bridge). Thread border routers are now the **SONOFF Dongle Max** (OpenThread RCP firmware, USB on the HA Green, OpenThread Border Router app, 460800 baud, flow control off, joined to the existing tado-5ba4 network) and the tado bridge. The DIRIGERA was removed after a failover test with the Sonoff as the only border router. Firmware updates for IKEA devices come through HA's Matter update entities.
+
 **How it works:**
 - DIRIGERA acts as a **Matter bridge** for its **Zigbee** devices. They all arrive in HA together with one code.
 - Native **Matter-over-Thread** devices are **not** part of the bridge. Each needs its **own sharing code** from the IKEA app.

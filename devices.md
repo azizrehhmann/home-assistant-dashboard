@@ -2,7 +2,7 @@
 
 Confirmed with Aziz on 2026-11-21. Each physical device listed once (many also appear in Alexa via the IKEA skill).
 
-**Platform:** Home Assistant on HA Green/Yellow · **Hub:** IKEA DIRIGERA (Hallway) — Matter bridge + Thread border router
+**Platform:** Home Assistant on HA Green/Yellow · **Thread:** network "tado-5ba4", border routers = SONOFF Dongle Max (USB on the HA Green, OpenThread Border Router app) + tado Internet Bridge X. All IKEA devices are paired straight to HA over Matter. DIRIGERA removed 2026-11-24 (failover tested with the Sonoff alone)
 
 | Room | Device | Ecosystem → HA integration |
 |---|---|---|
@@ -27,11 +27,11 @@ Confirmed with Aziz on 2026-11-21. Each physical device listed once (many also a
 | Hallway | Hallway light | IKEA → Matter (`light.hallway_light`, motion-controlled) |
 | Hallway | Hallway motion sensor | IKEA → Matter |
 | Hallway | Main Door Sensor | IKEA → Matter |
-| Hallway | IKEA DIRIGERA hub | Matter bridge |
+| Hallway | ~~IKEA DIRIGERA hub~~ | Removed 2026-11-24 (returned); replaced by the SONOFF Dongle Max as Thread border router |
 | Studio | Studio Lamp — one lamp, 3 IKEA bulbs (Alexa "Studio Lamp 1–3") | IKEA → Matter (HA light group) |
 | Studio | Studio Light (ceiling) | IKEA → Matter |
 | Studio | BILRESA scroll wheel | IKEA → Matter |
-| Studio | Meross presence sensor, Matter-over-Thread, 3 zones | Matter (via DIRIGERA Thread) |
+| Studio | Meross presence sensor, Matter-over-Thread, 3 zones | Matter over Thread |
 | Studio | Roborock Q5 Pro (dock) | Roborock |
 | Studio | Echo Dot | Alexa Devices |
 | Balcony | Balcony lights (LEDVANCE SMART+ Wi-Fi plug, Tuya-based) | Tuya, after moving the plug to the Smart Life app (local key is cloud-only) |

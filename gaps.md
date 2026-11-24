@@ -4,7 +4,7 @@ What the flat can't sense or control yet, ranked by value for money. Each gap li
 
 **Buying rules**
 1. **Matter first, local only.** No device that needs its own cloud to work.
-2. **IKEA Zigbee through DIRIGERA beats IKEA Thread** until you have a ZBT-2. Zigbee devices arrive over the stable Matter bridge; Thread devices shared from DIRIGERA are the ones that drop out (deploy.md Phase 0). After a ZBT-2, either is fine.
+2. *(Outdated 2026-11-24: DIRIGERA removed; the Thread devices are stable through the SONOFF Dongle Max border router. New IKEA Zigbee-only gear would need a Zigbee coordinator.)* **IKEA Zigbee through DIRIGERA beats IKEA Thread** until you have a ZBT-2. Zigbee devices arrive over the stable Matter bridge; Thread devices shared from DIRIGERA are the ones that drop out (deploy.md Phase 0). After a ZBT-2, either is fine.
 3. **Renter-friendly**: nothing that needs rewiring unless the landlord agrees. Bulbs, plugs, stick-on sensors and retrofit locks only.
 
 ---
