@@ -98,3 +98,16 @@ Everything below is the original catalogue, kept for reference. Tier 1 automatio
   - `alexa_devices.send_text_command` takes `device_id` + `text_command`
   - setting tado to HomeKit `off` = frost protection, and the cloud entity `auto` = back to the tado schedule
   - Check all of these against your real entities after pairing.
+
+## Daily automations added 2026-11-26 (live, editable in the Automations tab)
+| Automation | What it does |
+|---|---|
+| Robot · clean when everyone is out | Nobody home 10 min, 09–19, docked, ≥ 50 % battery, not cleaned today → whole-flat clean (skipped in vacation mode). |
+| Robot · return to dock when someone comes home | First person home while it cleans → back to the dock. (No proximity sensor, so it reacts on arrival, not on the way.) |
+| Washer · wet laundry reminder | Finished and door not opened for 30 min → push to both phones, Echo in the occupied room (08–22). |
+| Presence · leaving check | 2 min after everyone left → one push to both phones listing an open main/balcony door or a running rice cooker. Replaces the old Aziz-only warning in "everyone left". |
+| Air · fresh-air nudge | Living-room CO₂ > 1000 ppm for 10 min, someone home, 08–22, balcony door closed → living-room Echo asks to air out. At most once an hour. |
+| Hallway / kitchen motion light (updated) | 23:00–06:00 the light comes on at 10 % and warmest white; daytime unchanged. |
+| Bedroom · goodnight | Hold the bottom bedroom button → every light off except the bedside lamps, living room + Studio heating 17 °C until 06:30 (shown on the dashboard countdown), push with any open door. |
+| Studio · focus mode | Weekdays 09–17, Studio occupied 2 min → Focus scene + Studio Echo do-not-disturb; DND off after 10 min empty. |
+| Robot · weekly maintenance check | Sundays 10:00 → push listing robot parts with < 5 h left or overdue. |

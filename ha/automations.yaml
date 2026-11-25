@@ -87,8 +87,10 @@
       entity_id: light.balcony_lights
 - id: kitchen_motion_light
   alias: Kitchen · motion light
-  description: Turns the light on only if it is off and the room is dark. Brightness and colour come from sensor.light_mode (packages/lighting.yaml). Never overrides a light you set yourself; off after 3 min without motion.
-  mode: restart
+  description: Turns the light on only if it is off and the room is dark. Brightness
+    and colour come from sensor.light_mode (packages/lighting.yaml). Never overrides
+    a light you set yourself; off after 3 min without motion. From 23:00 to 06:00
+    it comes on at 10 % in the warmest white (2202 K).
   triggers:
   - trigger: state
     entity_id: binary_sensor.kitchen_motion
@@ -115,8 +117,10 @@
       target:
         entity_id: light.kitchen_ceiling
       data:
-        brightness_pct: '{{ state_attr(''sensor.light_mode'', ''brightness_pct'') }}'
-        color_temp_kelvin: '{{ state_attr(''sensor.light_mode'', ''kelvin'') }}'
+        brightness_pct: '{{ 10 if (now().hour >= 23 or now().hour < 6) else state_attr(''sensor.light_mode'',
+          ''brightness_pct'') }}'
+        color_temp_kelvin: '{{ 2202 if (now().hour >= 23 or now().hour < 6) else state_attr(''sensor.light_mode'',
+          ''kelvin'') }}'
         transition: 1
   - wait_for_trigger:
     - trigger: state
@@ -131,10 +135,12 @@
       entity_id: light.kitchen_ceiling
     data:
       transition: 2
+  mode: restart
 - id: hallway_motion_light
   alias: Hallway · motion light
-  description: Turns the light on when the hallway is dark and it is off; brightness and colour come from sensor.light_mode. Off after 2 min without motion.
-  mode: restart
+  description: Turns the light on when the hallway is dark and it is off; brightness
+    and colour come from sensor.light_mode. Off after 2 min without motion. From 23:00
+    to 06:00 it comes on at 10 % in the warmest white (2202 K).
   triggers:
   - trigger: state
     entity_id: binary_sensor.hallway_motion
@@ -161,8 +167,10 @@
       target:
         entity_id: light.hallway_light
       data:
-        brightness_pct: '{{ state_attr(''sensor.light_mode'', ''brightness_pct'') }}'
-        color_temp_kelvin: '{{ state_attr(''sensor.light_mode'', ''kelvin'') }}'
+        brightness_pct: '{{ 10 if (now().hour >= 23 or now().hour < 6) else state_attr(''sensor.light_mode'',
+          ''brightness_pct'') }}'
+        color_temp_kelvin: '{{ 2202 if (now().hour >= 23 or now().hour < 6) else state_attr(''sensor.light_mode'',
+          ''kelvin'') }}'
         transition: 1
   - wait_for_trigger:
     - trigger: state
@@ -177,6 +185,7 @@
       entity_id: light.hallway_light
     data:
       transition: 2
+  mode: restart
 - id: studio_presence_on
   alias: Studio · lamp on when someone is there and it's dark
   triggers:
@@ -248,6 +257,8 @@
         message: The washing machine is done.
 - id: leave_home
   alias: Presence · everyone left
+  description: 'Five minutes after everyone left: all lights and the rice cooker off.
+    Door warnings come from the leaving check.'
   triggers:
   - trigger: state
     entity_id: zone.home
@@ -260,23 +271,6 @@
   - action: switch.turn_off
     target:
       entity_id: switch.rice_cooker
-  - if:
-    - condition: or
-      conditions:
-      - condition: state
-        entity_id: binary_sensor.main_door
-        state: 'on'
-      - condition: state
-        entity_id: binary_sensor.balcony_door
-        state: 'on'
-    then:
-    - action: notify.mobile_app_azizs_iphone
-      data:
-        title: Nobody's home
-        message: 'Lights are off, but {{ ''the main door'' if is_state(''binary_sensor.main_door'',''on'')
-          else ''the balcony door'' }} is open.
-
-          '
 - id: arrive_home
   alias: Presence · welcome light after dark
   triggers:
@@ -481,3 +475,312 @@
       - action: scene.turn_on
         target:
           entity_id: scene.night
+- id: fresh_air_nudge
+  alias: Air · fresh-air nudge when CO2 is high
+  description: Announces on the living-room Echo when CO2 stays above 1000 ppm for
+    10 minutes with the balcony door closed (08:00-22:00, someone home, at most once
+    an hour).
+  triggers:
+  - trigger: numeric_state
+    entity_id: sensor.air_quality_co2
+    above: 1000
+    for: 00:10:00
+  conditions:
+  - condition: state
+    entity_id: input_boolean.vacation_mode
+    state: 'off'
+  - condition: numeric_state
+    entity_id: zone.home
+    above: 0
+  - condition: time
+    after: 08:00:00
+    before: '22:00:00'
+  - condition: state
+    entity_id: binary_sensor.balcony_door
+    state: 'off'
+  actions:
+  - action: notify.send_message
+    target:
+      entity_id: notify.echo_living_room_announce
+    data:
+      message: CO2 is at {{ states('sensor.air_quality_co2') | float(0) | round(0)
+        | int }} ppm - open the balcony door for five minutes.
+  - alias: Cooldown (mode single drops triggers meanwhile)
+    delay: 01:00:00
+  mode: single
+- id: goodnight_bottom_button
+  alias: Bedroom · goodnight (hold bottom button)
+  description: Holding the bottom bedroom button turns off every light except the
+    bedside lamps, lowers living-room and studio heating to 17 C until 06:30 and pushes
+    a door check.
+  triggers:
+  - trigger: state
+    entity_id: event.bedroom_dual_button_2
+    not_from:
+    - unavailable
+    not_to:
+    - unavailable
+    - unknown
+  conditions:
+  - condition: template
+    value_template: '{{ trigger.to_state.attributes.event_type == ''long_press'' }}'
+  actions:
+  - action: light.turn_off
+    target:
+      entity_id:
+      - light.living_room_lights
+      - light.living_room_lamp
+      - light.kitchen_ceiling
+      - light.hallway_light
+      - light.studio_lights
+      - light.bedroom_ceiling
+      - light.tv_lights
+  - variables:
+      mins: '{% set t = now().replace(hour=6, minute=30, second=0, microsecond=0)
+        %}{% if t <= now() %}{% set t = t + timedelta(days=1) %}{% endif %}{{ [((t
+        - now()).total_seconds() / 60) | round(0) | int, 1440] | min }}'
+      open: '{{ [ ''the balcony door'' if is_state(''binary_sensor.balcony_door'',''on'')
+        else none, ''the main door'' if is_state(''binary_sensor.main_door'',''on'')
+        else none ] | reject(''none'') | join('' and '') }}'
+  - repeat:
+      for_each:
+      - living_room
+      - studio
+      sequence:
+      - action: tado_x.set_climate_timer
+        target:
+          entity_id: climate.{{ repeat.item }}
+        data:
+          temperature: 17
+          duration: '{{ mins }}'
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.climate_timer_{{ repeat.item }}
+        data:
+          datetime: '{{ (now() + timedelta(minutes=mins)).strftime(''%Y-%m-%d %H:%M:%S'')
+            }}'
+  - action: notify.mobile_app_azizs_iphone
+    data:
+      title: Goodnight
+      message: '{% if open %}Still open: {{ open }}.{% else %}All closed, good night.{%
+        endif %}'
+  - action: notify.mobile_app_iphone_wifey
+    data:
+      title: Goodnight
+      message: '{% if open %}Still open: {{ open }}.{% else %}All closed, good night.{%
+        endif %}'
+  mode: single
+- id: leaving_checks
+  alias: Presence · leaving check (doors and rice cooker)
+  description: 'Two minutes after everyone left, pushes a list of anything still open
+    or on: main door, balcony door, rice cooker.'
+  triggers:
+  - trigger: state
+    entity_id: zone.home
+    to: '0'
+    for: 00:02:00
+  conditions:
+  - condition: template
+    value_template: '{{ is_state(''binary_sensor.main_door'',''on'') or is_state(''binary_sensor.balcony_door'',''on'')
+      or is_state(''switch.rice_cooker'',''on'') }}'
+  actions:
+  - variables:
+      items: '{% set ns = namespace(l=[]) %}{% if is_state(''binary_sensor.main_door'',''on'')
+        %}{% set ns.l = ns.l + [''the main door is open''] %}{% endif %}{% if is_state(''binary_sensor.balcony_door'',''on'')
+        %}{% set ns.l = ns.l + [''the balcony door is open''] %}{% endif %}{% if is_state(''switch.rice_cooker'',''on'')
+        %}{% set ns.l = ns.l + [''the rice cooker is on (it switches off automatically)'']
+        %}{% endif %}{{ ns.l | join('', '') }}'
+  - action: notify.mobile_app_azizs_iphone
+    data:
+      title: Nobody's home
+      message: 'Heads up: {{ items }}.'
+  - action: notify.mobile_app_iphone_wifey
+    data:
+      title: Nobody's home
+      message: 'Heads up: {{ items }}.'
+  mode: single
+- id: robot_clean_when_away
+  alias: Robot · clean when everyone is out
+  description: Starts a whole-flat clean when nobody has been home for 10 minutes
+    (09:00-19:00), the robot is docked with at least 50 % battery and has not cleaned
+    today.
+  triggers:
+  - trigger: numeric_state
+    entity_id: zone.home
+    below: 1
+    for: 00:10:00
+  conditions:
+  - condition: state
+    entity_id: input_boolean.vacation_mode
+    state: 'off'
+  - condition: time
+    after: 09:00:00
+    before: '19:00:00'
+  - condition: state
+    entity_id: vacuum.roborock_q5_pro
+    state: docked
+  - condition: numeric_state
+    entity_id: sensor.studio_roborock_battery
+    above: 49
+  - alias: Has not cleaned today
+    condition: template
+    value_template: '{% set t = as_datetime(states(''sensor.studio_roborock_last_clean_begin''),
+      none) %}{{ t is none or as_local(t).date() != now().date() }}'
+  actions:
+  - action: vacuum.start
+    target:
+      entity_id: vacuum.roborock_q5_pro
+  mode: single
+- id: robot_dock_on_arrival
+  alias: Robot · return to dock when someone comes home
+  description: Sends the robot back to its dock if it is cleaning when someone arrives
+    home.
+  triggers:
+  - trigger: numeric_state
+    entity_id: zone.home
+    above: 0
+  conditions:
+  - condition: state
+    entity_id: vacuum.roborock_q5_pro
+    state: cleaning
+  actions:
+  - action: vacuum.return_to_base
+    target:
+      entity_id: vacuum.roborock_q5_pro
+  mode: single
+- id: robot_maintenance_weekly
+  alias: Robot · weekly maintenance check
+  description: Sundays at 10:00, pushes to both phones which robot parts (main brush,
+    side brush, filter, sensors) have under 5 hours left or are overdue; silent if
+    none.
+  triggers:
+  - trigger: time
+    at: '10:00:00'
+  conditions:
+  - condition: time
+    weekday:
+    - sun
+  actions:
+  - variables:
+      due: '{% set items = [(''Main brush'',''sensor.studio_roborock_main_brush_time_left''),(''Side
+        brush'',''sensor.studio_roborock_side_brush_time_left''),(''Filter'',''sensor.studio_roborock_filter_time_left''),(''Sensors'',''sensor.studio_roborock_sensor_time_left'')]
+        %}{% set ns = namespace(l=[]) %}{% for n, e in items %}{% set v = states(e)
+        | float(none) %}{% if v is not none and v < 5 %}{% set ns.l = ns.l + [n ~
+        ('' '' ~ ((-v) | round(0) | int) ~ '' h overdue'' if v < 0 else '' '' ~ (v
+        | round(0) | int) ~ '' h left'')] %}{% endif %}{% endfor %}{{ ns.l | join('',
+        '') }}'
+  - condition: template
+    value_template: '{{ due | length > 0 }}'
+  - action: notify.mobile_app_azizs_iphone
+    data:
+      title: Robot maintenance
+      message: 'Time to service the vacuum: {{ due }}.'
+  - action: notify.mobile_app_iphone_wifey
+    data:
+      title: Robot maintenance
+      message: 'Time to service the vacuum: {{ due }}.'
+  mode: single
+- id: studio_focus
+  alias: Studio · focus mode on desk time
+  description: On weekdays 09:00-17:00, 2 minutes of presence in the studio sets the
+    Focus scene and Studio Echo do-not-disturb; 10 minutes without presence turns
+    do-not-disturb off.
+  triggers:
+  - trigger: state
+    entity_id: binary_sensor.studio_presence
+    to: 'on'
+    for: 00:02:00
+    id: occupied
+  - trigger: state
+    entity_id: binary_sensor.studio_presence
+    to: 'off'
+    for: 00:10:00
+    id: clear
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id: occupied
+      - condition: state
+        entity_id: input_boolean.vacation_mode
+        state: 'off'
+      - condition: time
+        after: 09:00:00
+        before: '17:00:00'
+        weekday:
+        - mon
+        - tue
+        - wed
+        - thu
+        - fri
+      sequence:
+      - action: scene.turn_on
+        target:
+          entity_id: scene.focus
+      - action: switch.turn_on
+        target:
+          entity_id: switch.echo_studio_do_not_disturb
+    - conditions:
+      - condition: trigger
+        id: clear
+      sequence:
+      - action: switch.turn_off
+        target:
+          entity_id: switch.echo_studio_do_not_disturb
+  mode: restart
+- id: washer_wet_laundry_reminder
+  alias: Washer · wet laundry reminder
+  description: Reminds both phones (and the Echo in the occupied room) if the washer
+    has been finished for 30 minutes and its door was not opened.
+  triggers:
+  - trigger: state
+    entity_id: sensor.washer_operation_state
+    to: finished
+  conditions: []
+  actions:
+  - alias: Wait 30 min; abort if the door opens or a new program starts
+    wait_for_trigger:
+    - trigger: state
+      entity_id: sensor.kitchen_washing_machine_door
+      to: open
+    - trigger: state
+      entity_id: sensor.washer_operation_state
+      to:
+      - run
+      - ready
+      - delayedstart
+    timeout: 00:30:00
+    continue_on_timeout: true
+  - condition: template
+    value_template: '{{ wait.trigger is none }}'
+  - action: notify.mobile_app_azizs_iphone
+    data:
+      title: Washer
+      message: Laundry has been sitting in the washing machine for 30 minutes - hang
+        it up before it gets musty.
+  - action: notify.mobile_app_iphone_wifey
+    data:
+      title: Washer
+      message: Laundry has been sitting in the washing machine for 30 minutes - hang
+        it up before it gets musty.
+  - if:
+    - condition: time
+      after: 08:00:00
+      before: '22:00:00'
+    - condition: numeric_state
+      entity_id: zone.home
+      above: 0
+    then:
+    - action: notify.send_message
+      target:
+        entity_id: '{% if is_state(''binary_sensor.studio_presence'',''on'') %}notify.echo_studio_announce
+          {% elif is_state(''binary_sensor.kitchen_motion'',''on'') or is_state(''binary_sensor.echo_kitchen_presence'',''on'')
+          %}notify.echo_kitchen_announce {% else %}notify.echo_living_room_announce{%
+          endif %}
+
+          '
+      data:
+        message: Laundry has been sitting in the washing machine for 30 minutes -
+          hang it up before it gets musty.
+  mode: single
