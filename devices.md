@@ -12,7 +12,7 @@ Confirmed with Aziz on 2026-11-21. Each physical device listed once (many also a
 | Living | Living room light 1 + 2 (Alexa group "Living Room Ceiling") | IKEA → Matter |
 | Living | BILRESA scroll wheel | IKEA → Matter |
 | Living | Balcony door sensor (Alexa: "Living room door sensor") | IKEA → Matter |
-| Living | Air Quality Monitor — **offline, re-pair first** | IKEA → Matter |
+| Living | ALPSTUGA air quality monitor — online (Matter over Thread) | IKEA → Matter |
 | Living | Living room lamp | Wi-Fi (Tuya or Tapo) |
 | Living | TV lights — Govee LED strip behind TV | Govee lights local (LAN) / Govee cloud fallback |
 | Living | Hisense TV (VIDAA OS) | Controlled via Alexa (`alexa_devices.send_text_command` on the living-room Echo): off/volume work; power-**on** needs the TV's Quick Start / network-standby setting, else an IR blaster. VIDAA integration needs Hisense's client cert (TV rejects any other), so not pursued. |
@@ -37,6 +37,12 @@ Confirmed with Aziz on 2026-11-21. Each physical device listed once (many also a
 | Balcony | Balcony lights (LEDVANCE SMART+ Wi-Fi plug, Tuya-based) | Tuya, after moving the plug to the Smart Life app (local key is cloud-only) |
 | Living, Studio, Bedroom, Bathroom | tado° X radiator thermostats (temp + humidity) | tado X (community) + Matter |
 
+## Pairing status (2026-11-25)
+**In Home Assistant:** all IKEA lights (including Living Room Light 2 and Studio Light), the remotes, door and motion sensors, the ALPSTUGA, the Meross presence sensor, tado X, the Roborock, the Siemens washer, the 3 Echo Dots, the Kasa lamp and the rice cooker plug.
+
+**Still missing:** Govee TV lights, the LEDVANCE balcony plug, the Philips HTL3320 soundbar, and the Hisense TV as a media player (on/off already works through Alexa).
+
 ## Open items
-- Living room lamp and rice cooker plug: TP-Link Kasa (local). Balcony lights: LEDVANCE (Tuya).
-- Govee strip model (decides LAN vs cloud).
+- Pair the LEDVANCE balcony plug (Tuya, via Smart Life) and the Govee TV lights (decide LAN vs cloud from the strip model).
+- Philips HTL3320 soundbar: no HA route chosen yet.
+- Hisense TV as a real media player (today: on/off via Alexa only).

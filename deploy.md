@@ -1,5 +1,8 @@
 # Deployment guide: every device into Home Assistant
 
+> **Status as of 2026-11-25.** Done: HA Green running, IKEA devices paired straight over Matter (DIRIGERA removed), Thread via the SONOFF Dongle Max, tado X, Roborock, washer, Echo Dots, Kasa plugs, live "Liquid Glass" dashboard, automations. Left: Govee TV lights, LEDVANCE balcony plug, Philips HTL3320, Hisense TV as media player. The checklist below is the original plan, kept as history.
+
+
 Target: **Home Assistant Green**, HA **2026.11 or newer**. Researched 2026-11-21; sources at the end.
 Work through the phases in order and tick the boxes. Allow 3–4 hours in total; Phase B is the longest.
 

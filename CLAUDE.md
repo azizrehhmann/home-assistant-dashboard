@@ -3,7 +3,7 @@
 ## Folder Purpose
 Rebuild Aziz's smart home on Home Assistant (running on HA Green/Yellow) from scratch:
 1. Confirmed device inventory (`devices.md`)
-2. Liquid-glass (iOS 26 / macOS style) dashboard, first as an HTML mock (`dashboard/index.html`), then ported to Lovelace (`ha/`)
+2. Liquid-glass (iOS 26 / macOS style) dashboard `dashboard/index.html`: live inside HA as the "Liquid Glass" Webpage dashboard (iframe, reads/drives `hass` from the parent); opened on its own it runs a scrubbed demo snapshot (`tools/demo_snapshot.py`). `ha/dashboards/home.yaml` is only a built-in-cards fallback
 3. Integration + deployment guide (`deploy.md`)
 4. Advanced "home of the future" automations (`automations.md`)
 5. Device gap analysis (`gaps.md`)
@@ -23,6 +23,19 @@ In this folder, act as a **senior smart-home engineer / Home Assistant integrato
 ## Things to Remember
 - Rooms: Living Room, Studio, Bedroom, Kitchen, Bathroom, Passage/Hallway, Balcony.
 - Thread network "tado-5ba4": border routers are the SONOFF Dongle Max (USB on the HA Green, OpenThread Border Router app) and the tado bridge. All IKEA devices pair straight to HA over Matter. The DIRIGERA hub was removed on 2026-11-24.
+
+## Live system
+- HA Green at `http://192.168.178.57` (port 80). SSH app with key `~/.ssh/ha_green`; API token in `~/.config/ha-token` (never print or commit it). `tools/ha.py` sends one websocket command.
+- Publish the dashboard with `python3 tools/deploy_dashboard.py` (copies to `/config/www/liquid-glass/`). Publishing touches the live home: do it from the main session, after Aziz approves.
+- Automations: HA's `/config/automations.yaml` is the master copy (editable from the dashboard's Automations tab and HA's editor). Run `tools/pull_automations.sh` before committing. Helpers, scenes, the remote script and vacation automations live in `ha/packages/` (copied to `/config/packages/`).
+- Heating: tado X community integration (`climate.<room>`); Boost = `tado_x.set_climate_timer` 25° / 30 min; timer end times are stored by the dashboard in `input_datetime.climate_timer_<room>`.
+- Alexa voice via HA Cloud (Nabu Casa) with a curated exposed list; new entities are not auto-exposed. TV on/off goes through `alexa_devices.send_text_command`.
+- People: `person.muhammad_aziz_ur_rehman` ("Hubby") and `person.wifey`; "away" means both phones away (`zone.home` = 0).
+- Browser tests and the fake-HA harness live in the session scratchpad; the repo has no test folder yet.
+
+## Workflow
+- Opus plans; Sonnet subagents execute (edits, commands, tests). Review their reports and screenshots before telling Aziz something is done.
+- Several sessions work in this repo and tag it. Before tagging run `git fetch --tags` and use the next free minor version; stage only your own files (never `brag-output/` or other sessions' work in progress).
 
 ---
 
