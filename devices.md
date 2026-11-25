@@ -14,7 +14,9 @@ Confirmed with Aziz on 2026-11-21. Each physical device listed once (many also a
 | Living | Balcony door sensor (Alexa: "Living room door sensor") | IKEA → Matter |
 | Living | ALPSTUGA air quality monitor — online (Matter over Thread) | IKEA → Matter |
 | Living | Living room lamp | Wi-Fi (Tuya or Tapo) |
-| Living | TV lights — Govee LED strip behind TV | Govee lights local (LAN) / Govee cloud fallback |
+| Living | TV lights — Govee DreamView T1 (H6199) behind TV, in the "Living room lights" group | Govee Cloud (custom integration `lasswellt/govee-homeassistant`, API key in `~/.config/govee-key`); Govee lights local is installed for when LAN Control is enabled |
+| Unassigned | Govee fan (H7101) | Govee Cloud (`fan.govee_fan`); offline in Govee's cloud on 2026-11-26 |
+| Kitchen, Bathroom | Govee thermometers (H5075) | Govee Cloud entities exist but stay unavailable: Bluetooth-only; needs a Bluetooth adapter on the HA Green (`govee_ble`) or a Govee gateway |
 | Living | Hisense TV (VIDAA OS) | Controlled via Alexa (`alexa_devices.send_text_command` on the living-room Echo): off/volume work; power-**on** needs the TV's Quick Start / network-standby setting, else an IR blaster. VIDAA integration needs Hisense's client cert (TV rejects any other), so not pursued. |
 | Living | Philips soundbar HTL3320/10 ("Living Room Play-Fi") | TBC: Play-Fi / DLNA / Alexa; Bluetooth fallback |
 | Living | Echo Dot | Alexa Devices |
@@ -40,9 +42,10 @@ Confirmed with Aziz on 2026-11-21. Each physical device listed once (many also a
 ## Pairing status (2026-11-25)
 **In Home Assistant:** all IKEA lights (including Living Room Light 2 and Studio Light), the remotes, door and motion sensors, the ALPSTUGA, the Meross presence sensor, tado X, the Roborock, the Siemens washer, the 3 Echo Dots, the Kasa lamp and the rice cooker plug.
 
-**Still missing:** Govee TV lights, the LEDVANCE balcony plug, the Philips HTL3320 soundbar, and the Hisense TV as a media player (on/off already works through Alexa).
+**Still missing:** the LEDVANCE balcony plug, the Philips HTL3320 soundbar, and the Hisense TV as a media player (on/off already works through Alexa).
 
 ## Open items
-- Pair the LEDVANCE balcony plug (Tuya, via Smart Life) and the Govee TV lights (decide LAN vs cloud from the strip model).
+- Pair the LEDVANCE balcony plug (Tuya, via Smart Life).
+- Govee fan offline and H5075 thermometers need Bluetooth (adapter or Govee gateway).
 - Philips HTL3320 soundbar: no HA route chosen yet.
 - Hisense TV as a real media player (today: on/off via Alexa only).

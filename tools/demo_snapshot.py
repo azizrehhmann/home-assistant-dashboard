@@ -16,13 +16,13 @@ MAX_BYTES = 150_000
 
 DOMAINS = {"light", "switch", "climate", "sensor", "binary_sensor", "media_player", "vacuum", "person", "zone", "scene",
            "script", "automation", "update", "event", "weather", "select", "button", "sun", "input_boolean",
-           "input_datetime", "input_number", "input_select", "input_text", "input_button"}
+           "input_datetime", "input_number", "input_select", "input_text", "input_button", "fan"}
 ATTRS = {"friendly_name", "device_class", "unit_of_measurement", "supported_color_modes", "color_mode", "brightness",
          "color_temp_kelvin", "hs_color", "rgb_color", "xy_color", "temperature", "current_temperature", "hvac_action",
          "manual_control_active", "current_humidity", "volume_level", "is_volume_muted", "media_title", "media_artist",
          "fan_speed", "id", "last_triggered", "entity_id", "options", "min", "max", "step", "has_date", "has_time",
          "icon", "installed_version", "latest_version", "title", "hvac_modes", "min_temp", "max_temp", "battery_level",
-         "min_color_temp_kelvin", "max_color_temp_kelvin"}
+         "min_color_temp_kelvin", "max_color_temp_kelvin", "preset_mode", "preset_modes", "oscillating", "percentage"}
 BAD_ID = re.compile(r"\d{10,}|fritz|gmail|@|iphone|phone|(^|[._])(ip|mac|ssid|bssid|wifi|gps)([._]|$)|device_tracker|bridge_x_\d")  # bridge_x_<serial> is a device serial
 AUTO_KEYS = ("id", "alias", "description", "mode", "triggers", "conditions", "actions")
 EMAIL = r"[\w.+-]+@[\w-]+\.[\w.-]+"
@@ -36,6 +36,8 @@ def scrub_states(raw):
     for s in raw:
         eid = s["entity_id"]
         if eid.split(".")[0] not in DOMAINS or BAD_ID.search(eid.lower()):
+            continue
+        if "_segment_" in eid or re.search(r"(tv_lights|thermometer|govee).*_(connection_mode|connectivity|last_changed|snapshot|music_mode|music_sensitivity)|rate_limit", eid):  # Govee strip segments + diagnostics: never shown, only size
             continue
         if eid.startswith("button.") and "washing" not in eid:  # only the washer buttons are used; the rest is size
             continue
