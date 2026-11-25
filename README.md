@@ -14,6 +14,7 @@ Rebuilding a flat's smart home on Home Assistant (HA Green) with a liquid-glass,
   - Home "Right now" activity strip (live only): animated cards for washer, robot, who is home, heating and music, shown only while true.
   - Home "Nerd stats" (live only, collapsible): entity counts, Thread, robot lifetime and consumables, batteries, internet, grid, 24 h sparklines.
   - Appliances Echo card: volume slider and mute per Echo Dot.
+  - Music tab: real now-playing and controls from the Echo Dots, one room or Everywhere, your YouTube Music playlists, liked songs and search (via Music Assistant) played on Spotify through Alexa, plus Spotify by name. Setup in `deploy.md`.
   - Climate: Boost/Timer countdown ("until 14:32 · 18 min left") stored in `input_datetime.climate_timer_<room>` (`ha/packages/climate_timers.yaml`), plus an "All thermometers" card.
 - `ha/dashboards/home.yaml`: fallback dashboard with built-in cards only.
 - `ha/automations.yaml`: snapshot of the live automations. Home Assistant is the master copy (edit them in the dashboard's Automations tab or HA's editor); refresh with `tools/pull_automations.sh`.

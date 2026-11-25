@@ -245,6 +245,10 @@ h2 .end{margin-left:auto}
 .mu-cover{width:72px;height:72px;border-radius:16px;background:var(--hair);object-fit:cover;flex:none;display:grid;place-items:center;color:var(--fg-3)}.mu-cover .i{width:28px;height:28px}
 .mu-ctrl{display:flex;gap:10px;justify-content:center;margin:16px 0 4px}.mu-ctrl .btn{width:48px;height:48px;padding:0}
 .mu-vol{display:grid;grid-template-columns:84px minmax(0,1fr) 40px;align-items:center;gap:10px;font-size:13px;padding:6px 0}.mu-vol b{text-align:right;font-weight:600}
+.mu-pin[aria-pressed="true"]{color:var(--accent)}.mu-pin[aria-pressed="true"] .i{fill:currentColor}
+.mu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;margin-top:12px}
+.mu-t{display:flex;flex-direction:column;gap:4px;padding:8px;border-radius:14px;background:var(--hair);text-align:left;font-size:12.5px;font-weight:600;min-width:0;color:inherit}.mu-t .mu-cover{width:100%;height:auto;aspect-ratio:1}.mu-t span,.mu-t small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.mu-t small{font-weight:400;color:var(--fg-3)}
+.mu-fv{display:inline-flex;gap:2px}
 .mu-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .mu-steps{margin:8px 0 12px;padding-left:20px;font-size:13.5px;color:var(--fg-2);line-height:1.5}.mu-steps li+li{margin-top:6px}.mu-steps a{color:var(--accent)}
 .btn[disabled]{opacity:.45;pointer-events:none}
@@ -362,6 +366,8 @@ const P={
  mnext:'<path d="M5 5v14l10-7z"/><path d="M19 5v14"/>',
  mpause:'<path d="M8 5v14M16 5v14"/>',
  mplay:'<path d="M7 4.5v15l12-7.5z"/>',
+ star:'<path d="M12 3.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 17l-5.4 3 1.2-6-4.5-4.2 6.1-.7z"/>',
+ x:'<path d="M6 6l12 12M18 6L6 18"/>',
  mstop:'<rect x="6" y="6" width="12" height="12" rx="2"/>',
  cube:'<path d="M12 2.5l8.5 4.8v9.4L12 21.5l-8.5-4.8V7.3z"/><path d="M12 12l8.5-4.7M12 12v9.5M12 12L3.5 7.3"/>',
  bulb:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
@@ -1278,45 +1284,54 @@ function build3d(){
   T3.r=r;T3.resize=resize;T3.reset=reset;T3.ready=true;T3.retheme();
 }
 
-/* ---------- Music: Spotify / YouTube Music on the Echo Dots, through Alexa ----------
-   Playback = alexa_devices.send_text_command (what you'd say to Alexa). Rooms: one Echo, an Alexa speaker group for two rooms,
-   the "Everywhere" group for all three. Accounts are linked in the Alexa app; Spotify can also be linked in HA for now-playing. */
+/* ---------- Music: Spotify on the Echo Dots through Alexa, YouTube Music as a browse-only library ----------
+   Playback starts with alexa_devices.send_text_command (what you'd say to Alexa); now-playing and transport come from the Echo media_player
+   entities (and the "Everywhere" group entity). A group is addressed through a member Echo plus " on <group name>": sending to the group device is ignored.
+   The YouTube Music library (Music Assistant) is only a catalogue: tapping an item asks Alexa to play the same thing on Spotify. */
 const MU_ROOMS=[['kitchen','Kitchen','media_player.echo_kitchen'],['living','Living room','media_player.echo_living_room'],['studio','Studio','media_player.echo_studio']];
-const MU_SVC={spotify:'Spotify',ytm:'YouTube Music'}, MU_KINDS=[['any','Anything'],['playlist','Playlist'],['artist','Artist'],['album','Album']];
+const MU_SVC={spotify:'Spotify'}, MU_KINDS=[['any','Anything'],['playlist','Playlist'],['artist','Artist'],['album','Album']];
 const MU_GNAME={'kitchen,living':'Kitchen and Living Room','kitchen,studio':'Kitchen and Studio','living,studio':'Living Room and Studio'};
-const MU_GROUP_MODE='device'; // shortcut: group commands go to the group device; 'phrase' sends them to a member Echo with the group name instead (settled by a live test)
-let MU={rooms:['living'],src:'spotify',kind:'any',q:'',recent:[],last:null,paused:false,devs:null,devsAt:0,pl:null,plAt:0,vp:{}};
+const muMk=(t,n,a)=>({name:n,media_type:t,artists:a?[{name:a}]:[]});
+const MU_MOCK={pl:['Discover Weekly Favs','Gym Beast Mode','Deep Focus','Road Trip 2026','Late Night Jazz','90s Throwbacks'].map(n=>muMk('playlist',n)),
+  liked:[['Slow Dancing in the Dark','Joji'],['Blinding Lights','The Weeknd'],['Heat Waves','Glass Animals'],['Redbone','Childish Gambino'],['Space Song','Beach House'],['Nights','Frank Ocean']].map(([n,a])=>muMk('track',n,a)),
+  find:[muMk('track','Slow Dancing in the Dark','Joji'),muMk('track','Glimpse of Us','Joji'),muMk('album','Nectar','Joji'),muMk('artist','Joji'),muMk('playlist','Joji Radio')]};
+let MU={rooms:['living'],src:'spotify',kind:'any',q:'',recent:[],fav:[],devs:null,devsAt:0,vp:{},cid:undefined,libAt:0,pl:null,liked:null,lib:'pl',sq:'',sres:null,busy:false,cur:[]};
 try{const s=JSON.parse(localStorage.getItem('aziz-music')||'{}');if(Array.isArray(s.rooms)&&s.rooms.length&&s.rooms.every(r=>MU_ROOMS.some(m=>m[0]===r)))MU.rooms=s.rooms;
-  if(MU_SVC[s.src])MU.src=s.src;if(MU_KINDS.some(k=>k[0]===s.kind))MU.kind=s.kind;if(Array.isArray(s.recent))MU.recent=s.recent.slice(0,6);if(s.last)MU.last=s.last}catch(_){}
-const muSave=()=>{try{localStorage.setItem('aziz-music',JSON.stringify({rooms:MU.rooms,src:MU.src,kind:MU.kind,recent:MU.recent,last:MU.last}))}catch(_){}};
+  if(MU_SVC[s.src])MU.src=s.src;if(MU_KINDS.some(k=>k[0]===s.kind))MU.kind=s.kind;if(Array.isArray(s.recent))MU.recent=s.recent.filter(x=>x&&MU_SVC[x.src]).slice(0,6);if(Array.isArray(s.fav))MU.fav=s.fav.filter(f=>f&&f.q&&MU_SVC[f.src]).slice(0,12)}catch(_){}
+const muSave=()=>{try{localStorage.setItem('aziz-music',JSON.stringify({rooms:MU.rooms,src:MU.src,kind:MU.kind,recent:MU.recent,fav:MU.fav}))}catch(_){}};
 const muRoom=(id)=>MU_ROOMS.find(r=>r[0]===id);
-const muEchoDev=(ent)=>LIVE.on?LIVE.H().entities?.[ent]?.device_id:'mock';
-const muSp=()=>{if(!LIVE.on)return null;const s=LIVE.H().states,k=Object.keys(s).find(x=>x.startsWith('media_player.spotify'));return k?{ent:k,st:s[k]}:null};
+const muReal=()=>LIVE.on&&!DEMO; // the demo page runs a fake hass (LIVE.on is true there): library, groups and Alexa commands are mocked instead
+const muEchoDev=(ent)=>muReal()?LIVE.H().entities?.[ent]?.device_id:'mock';
+const muSt=(ent)=>LIVE.on?LIVE.H().states[ent]:S[ent]?.mp;
+const muNext=(s)=>!!((s?.attributes?.supported_features||0)&32); // NEXT_TRACK drops out during Spotify Free ads
 function muGroup(R){ // the Alexa speaker group for exactly these rooms, from the HA device registry (mock: a few pretend groups)
-  if(!LIVE.on)return R.length===3||R.join()==='kitchen,living'?{id:'mock',name:R.length===3?'Everywhere':MU_GNAME[R.join()],ents:[]}:null;
+  if(!muReal())return R.length===3||R.join()==='kitchen,living'?{id:'mock',name:R.length===3?'Everywhere':MU_GNAME[R.join()],ents:R.length===3?['media_player.everywhere']:[]}:null;
   const re={kitchen:/kitchen/i,living:/living/i,studio:/studio/i};
   const g=(MU.devs||[]).filter(d=>/speaker group/i.test(d.model||'')).find(d=>{const n=d.name_by_user||d.name||'',m=Object.keys(re).filter(k=>re[k].test(n));
     return R.length===3?(/everywhere/i.test(n)||m.length===3):(m.length===2&&R.every(k=>m.includes(k)))});
   if(!g)return null;const E=LIVE.H().entities||{};
   return {id:g.id,name:(g.name_by_user||g.name).replace(/\s*Speaker Group$/i,''),ents:Object.keys(E).filter(k=>E[k].device_id===g.id&&k.startsWith('media_player.'))}}
 function muTarget(){const R=MU.rooms.slice().sort(),n=R.length;
-  if(!n)return {ok:false,hint:'Pick at least one room',label:''};
-  const members=R.map(muRoom), label=n===3?'Everywhere':members.map(m=>m[1]).join(' + ');
-  if(n===1)return {ok:true,label,dev:muEchoDev(members[0][2]),devs:[muEchoDev(members[0][2])],ents:[members[0][2]],group:null,R};
+  if(!n)return {ok:false,hint:'Pick at least one room',label:'',R};
+  const m=R.map(muRoom), label=n===3?'Everywhere':m.map(x=>x[1]).join(' + ');
+  if(n===1)return {ok:true,label,dev:muEchoDev(m[0][2]),ent:m[0][2],suffix:'',R};
   const g=muGroup(R);
   if(!g)return {ok:false,label,R,hint:n===3?'The “Everywhere” group is missing in Alexa.':`Create the speaker group “${MU_GNAME[R.join()]}” in the Alexa app, then reload Alexa Devices in Home Assistant.`};
-  return {ok:true,label,dev:g.id,devs:members.map(m=>muEchoDev(m[2])),ents:[...new Set([...members.map(m=>m[2]),...g.ents])],group:g,R}}
+  return {ok:true,label,dev:muEchoDev(m[0][2]),ent:g.ents[0]||m[0][2],suffix:` on ${g.name}`,R}}
+function muNow(T){ // the target's entity, or any Echo that is actually playing when the target is idle
+  const E=[T.ent,...MU_ROOMS.map(r=>r[2])].filter(Boolean),e=E.find(x=>['playing','paused'].includes(muSt(x)?.state))||E[0],s=muSt(e);
+  return {e,s,on:['playing','paused'].includes(s?.state),where:e&&e!==T.ent?MU_ROOMS.find(r=>r[2]===e)?.[1]||'':''}}
 const muPhrase=(q,src,kind)=>{const s=MU_SVC[src];return {any:`play ${q} on ${s}`,playlist:`play my ${q} playlist on ${s}`,artist:`play music by ${q} on ${s}`,album:`play the album ${q} on ${s}`}[kind]||`play ${q} on ${s}`};
-function muSend(T,text){let dev=T.dev,t=text;
-  if(T.group&&MU_GROUP_MODE==='phrase'){dev=T.devs[0];t=`${text} on ${T.group.name}`}
-  if(!LIVE.on){toast(`Alexa (demo): “${t}”`);return}
+const muItemPhrase=(i)=>{const a=i.artists?.[0]?.name,n=i.name;return ({playlist:`play my ${n} playlist`,track:`play ${n}${a?' by '+a:''}`,album:`play the album ${n}${a?' by '+a:''}`}[i.media_type]||`play ${n}`)+' on Spotify'};
+const muImg=(i)=>{const m=i.image?.path||i.image||i.metadata?.images?.[0]?.path;return typeof m==='string'?m:''};
+// shortcut: name filter, MA items carry no provider; switch to provider_mappings if MA adds it
+const MU_GEN=/^(500 Random tracks|All favorited tracks|Infinite Mix|Random (Album|Artist)|Recently (added|played) tracks|Liked Music \(YouTube Music\))/i;
+const muFlat=(r)=>Object.entries(r||{}).flatMap(([k,a])=>Array.isArray(a)?a.map(i=>({...i,media_type:i.media_type||k.replace(/s$/,'')})):[]).filter(i=>!(i.media_type==='playlist'&&MU_GEN.test(i.name)));
+function muSend(dev,text,label){
+  if(!muReal()){toast(`Alexa (demo): “${text}” → ${label}`);return}
   if(!dev)return toast('Echo not found in Home Assistant');
-  LIVE.call('alexa_devices','send_text_command',{device_id:dev,text_command:t})}
-function muPlay(q,src,kind,T,test){
-  if(!T.ok)return toast(T.hint);
-  muSend(T,muPhrase(q,src,kind));MU.last={q:test?'music':q,src,kind,label:T.label,t:Date.now()};MU.paused=false;
-  if(!test){MU.recent=[{q,src,kind,rooms:MU.rooms.slice()},...MU.recent.filter(r=>!(r.q===q&&r.src===src&&r.kind===kind))].slice(0,6)}
-  muSave();render();if(!LIVE.on)toast(`Playing ${q} on ${MU_SVC[src]} · ${T.label}`)}
+  LIVE.call('alexa_devices','send_text_command',{device_id:dev,text_command:text})}
+function muPlay(phrase,T){if(!T.ok)return toast(T.hint);muSend(T.dev,phrase+T.suffix,T.label)}
 // a just-written volume/mute is held for 3 s so the 1 s poll can't snap the slider back before Home Assistant reports it
 const muHold=(ent,o)=>{MU.vp[ent]={...MU.vp[ent],...o,until:Date.now()+3000}};
 const muHeld=(ent,k,v)=>{const p=MU.vp[ent];return p&&Date.now()<p.until&&p[k]!=null?p[k]:v};
@@ -1324,78 +1339,89 @@ function muVolSet(room,v){const ent=muRoom(room)[2];muHold(ent,{v});if(LIVE.on)L
 const muVol=(ent)=>muHeld(ent,'v',LIVE.on?Math.round((LIVE.H().states[ent]?.attributes?.volume_level??.3)*100):(S[ent].vol??30));
 const muMuted=(ent)=>muHeld(ent,'m',LIVE.on?!!LIVE.H().states[ent]?.attributes?.is_volume_muted:!!S[ent].muted);
 function muMute(ent){const m=!muMuted(ent);muHold(ent,{m});if(LIVE.on)LIVE.call('media_player','volume_mute',{entity_id:ent,is_volume_muted:m});else S[ent].muted=m;render()}
+const muMA=(service,service_data)=>LIVE.H().callWS({type:'call_service',domain:'music_assistant',service,service_data:{config_entry_id:MU.cid,...service_data},return_response:true}).then(r=>r.response);
+async function muSearch(q){MU.sq=q;MU.busy=true;MU.sres=null;render();
+  try{MU.sres=muReal()?await muMA('search',{name:q,media_type:['track','album','artist','playlist'],limit:8}):{tracks:MU_MOCK.find}}catch(_){MU.sres={};toast('YouTube Music search failed')}
+  MU.busy=false;render()}
 function musicAct(d){
   if(d.murm){const r=d.murm;MU.rooms=MU.rooms.includes(r)?MU.rooms.filter(x=>x!==r):[...MU.rooms,r];muSave();render();return}
-  if(d.musrc){MU.src=d.musrc;muSave();render();return}
   if(d.mukind){MU.kind=d.mukind;muSave();render();return}
-  const T=muTarget();
+  if(d.mulib){MU.lib=d.mulib;render();return}
+  const T=muTarget(),N=muNow(T),q=(document.getElementById('muQ')?.value||MU.q).trim(),sv=(s)=>muReal()?LIVE.call('media_player',s,{entity_id:N.e}):toast(`Demo: ${s} → ${T.label}`);
   switch(d.mu){
     case 'everywhere':MU.rooms=MU_ROOMS.map(r=>r[0]);muSave();render();return;
     case 'accounts':openSheet('music',document.activeElement);return;
-    case 'play':{const q=(document.getElementById('muQ')?.value||MU.q).trim();if(!q){toast('Type what to play');document.getElementById('muQ')?.focus();return}MU.q=q;return muPlay(q,MU.src,MU.kind,T)}
-    case 'recent':{const r=MU.recent[+d.i];if(!r)return;MU.rooms=r.rooms;MU.src=r.src;MU.kind=r.kind;return muPlay(r.q,r.src,r.kind,muTarget())}
-    case 'pl':{const p=MU.pl?.[+d.i];if(p)return muPlay(p.name,'spotify','playlist',T);return}
-    case 'test':return muPlay('music',d.svc,'any',T,true);
-    case 'pause':if(!T.ok)return toast(T.hint);MU.paused=!MU.paused;muSend(T,MU.paused?'pause':'resume');render();return;
-    case 'next':if(!T.ok)return toast(T.hint);return muSend(T,'next song');
-    case 'prev':if(!T.ok)return toast(T.hint);return muSend(T,'previous song');
-    case 'stop':{if(!T.ok)return toast(T.hint);muSend(T,'stop');if(LIVE.on)LIVE.call('media_player','media_stop',{entity_id:T.ents});MU.last=null;MU.paused=false;muSave();render();return}
+    case 'play':{if(!q){toast('Type what to play');document.getElementById('muQ')?.focus();return}MU.q=q;
+      if(T.ok)MU.recent=[{q,src:MU.src,kind:MU.kind,rooms:MU.rooms.slice()},...MU.recent.filter(r=>!(r.q===q&&r.src===MU.src&&r.kind===MU.kind))].slice(0,6);muSave();render();return muPlay(muPhrase(q,MU.src,MU.kind),T)}
+    case 'recent':{const r=MU.recent[+d.i];if(!r)return;MU.rooms=r.rooms;MU.src=r.src;MU.kind=r.kind;return muPlay(muPhrase(r.q,r.src,r.kind),muTarget())}
+    case 'pin':{if(!q)return toast('Type what to pin first');const i=MU.fav.findIndex(f=>f.q===q&&f.src===MU.src&&f.kind===MU.kind);
+      if(i>=0)MU.fav.splice(i,1);else if(MU.fav.length>=12)return toast('12 favourites is the limit');else MU.fav.unshift({q,src:MU.src,kind:MU.kind});MU.q=q;muSave();render();return}
+    case 'fav':{const f=MU.fav[+d.i];if(f){MU.q=f.q;MU.src=f.src;MU.kind=f.kind;muSave();render();muPlay(muPhrase(f.q,f.src,f.kind),T)}return}
+    case 'unfav':MU.fav.splice(+d.i,1);muSave();render();return;
+    case 'item':{const i=MU.cur[+d.i];if(i)muPlay(muItemPhrase(i),T);return}
+    case 'search':{const s=(document.getElementById('muS')?.value||'').trim();if(s)muSearch(s);return}
+    case 'test':return muPlay(`play music on ${MU_SVC[d.svc]}`,T);
+    case 'pause':return sv('media_play_pause');
+    case 'next':return sv('media_next_track');
+    case 'stop':return sv('media_stop');
+    case 'prev':{if(!T.ok)return toast(T.hint);return muSend(MU_ROOMS.some(r=>r[2]===N.e)?muEchoDev(N.e):T.dev,'previous',T.label)} // PREVIOUS_TRACK is never supported by the Echo entities
   }}
-async function muEnter(){ // live: load Alexa speaker groups (device registry) and Spotify playlists, then redraw once
-  if(!LIVE.on)return;let changed=false;
+async function muEnter(){ // live: load Alexa speaker groups (device registry) and the Music Assistant library (5 min cache), then redraw once
+  if(!muReal())return;let changed=false;
   if(!MU.devs||Date.now()-MU.devsAt>6e4){MU.devsAt=Date.now();try{const r=await LIVE.H().callWS({type:'config/device_registry/list'});const old=JSON.stringify(MU.devs);MU.devs=r.filter(x=>/speaker group/i.test(x.model||''));changed=old!==JSON.stringify(MU.devs)}catch(_){MU.devs=MU.devs||[]}}
-  const sp=muSp();
-  if(sp&&(!MU.pl||Date.now()-MU.plAt>3e5)){MU.plAt=Date.now();try{const H=LIVE.H,root=await H().callWS({type:'media_player/browse_media',entity_id:sp.ent});
-      const pls=root.children?.find(c=>/playlist/i.test(c.title)),lst=pls&&await H().callWS({type:'media_player/browse_media',entity_id:sp.ent,media_content_id:pls.media_content_id,media_content_type:pls.media_content_type});
-      MU.pl=(lst?.children||[]).slice(0,12).map(c=>({name:c.title}))}catch(_){MU.pl=[]}changed=true}
+  if(MU.cid===undefined||Date.now()-MU.libAt>(MU.cid?3e5:3e4)){MU.libAt=Date.now();
+    try{const en=(await LIVE.H().callWS({type:'config_entries/get',domain:'music_assistant'})).find(x=>x.state==='loaded');MU.cid=en?en.entry_id:null;
+      if(en)[MU.pl,MU.liked]=await Promise.all([muMA('get_library',{media_type:'playlist',limit:100}),muMA('get_library',{media_type:'track',favorite:true,limit:100})]).then(r=>r.map(x=>x?.items||[]));if(MU.pl)MU.pl=MU.pl.filter(i=>!MU_GEN.test(i.name))}
+    catch(_){MU.cid=null}changed=true}
   if(changed&&view==='music')render()}
 function vMusic(){
-  const T=muTarget(),sp=muSp(),ss=sp?.st,spNow=ss&&['playing','paused'].includes(ss.state)?ss:null,L=MU.last;
+  const T=muTarget(),N=muNow(T),a=N.s?.attributes||{},pl=N.s?.state==='playing';
   const room=([id,n])=>`<button class="mu-room" data-murm="${id}" aria-pressed="${MU.rooms.includes(id)}">${ic('echo')}<span>${n}</span></button>`;
   const seg=(items,cur,key,label)=>`<div class="seg full" role="group" aria-label="${label}">${items.map(([k,n])=>`<button data-${key}="${k}" aria-pressed="${cur===k}">${n}</button>`).join('')}</div>`;
   const vol=MU.rooms.map(muRoom).map(([id,n,ent])=>`<div class="mu-vol"><span>${n}</span><input type="range" min="0" max="100" value="${muVol(ent)}" data-muvol="${id}" aria-label="${n} volume"><b id="muV-${id}">${muVol(ent)}%</b></div>`).join('');
-  const nowTxt=spNow?`<b>${esc(spNow.attributes.media_title||'')}</b><small>${esc(spNow.attributes.media_artist||'')} · Spotify${spNow.state==='paused'?' · paused':''}</small>`
-    :L?`<b>${esc(L.q)}</b><small>Requested on ${MU_SVC[L.src]} · ${esc(L.label)}${MU.paused?' · paused':''}</small>`:`<b>Nothing playing</b><small>Pick rooms and ask for something below</small>`;
-  const cover=spNow?.attributes.entity_picture?`<img class="mu-cover" src="${esc(spNow.attributes.entity_picture)}" alt="">`:`<div class="mu-cover">${ic('music')}</div>`;
-  return head('Music','Spotify and YouTube Music on your Echo Dots')+`<div class="grid">
+  const cover=N.on&&a.entity_picture?`<img class="mu-cover" src="${esc(a.entity_picture)}" alt="">`:`<div class="mu-cover">${ic('music')}</div>`;
+  const nowTxt=N.on?`<b>${esc(a.media_title||'Playing')}</b><small>${esc([a.media_artist,a.media_album_name].filter(Boolean).join(' · '))}</small>${N.where?`<small>in ${esc(N.where)}</small>`:''}`:`<b>Nothing playing</b><small>Pick rooms and ask for something below</small>`;
+  const conn=muReal()?MU.cid:true, wait=muReal()&&MU.cid===undefined;
+  MU.cur=MU.lib==='search'?muFlat(MU.sres):MU.lib==='liked'?(muReal()?MU.liked:MU_MOCK.liked):(muReal()?MU.pl:MU_MOCK.pl);MU.cur=MU.cur||[];
+  const tile=(i,n)=>{const m=muImg(i);return `<button class="mu-t" data-mu="item" data-i="${n}">${m?`<img class="mu-cover" src="${esc(m)}" alt="" loading="lazy">`:`<div class="mu-cover">${ic('music')}</div>`}<span>${esc(i.name)}</span>${i.artists?.[0]?`<small>${esc(i.artists[0].name)}</small>`:''}</button>`};
+  const lib=!conn?`<p class="note" style="margin:12px 0">Connect YouTube Music in Music Assistant to see your playlists here.</p><div class="row"><button class="btn small" data-mu="accounts">Set up</button></div>`
+    :wait?`<p class="note" style="margin:12px 0 0">Loading your library…</p>`
+    :`${MU.lib==='search'?`<div class="row" style="margin-top:12px;flex-wrap:nowrap"><input id="muS" class="mu-in" type="text" value="${esc(MU.sq)}" placeholder="Song, album, artist, playlist" aria-label="Search YouTube Music" autocomplete="off"><button class="btn small" data-mu="search" ${MU.busy?'disabled':''}>Search</button></div>`:''}
+      ${MU.cur.length?`<div class="mu-grid">${MU.cur.map(tile).join('')}</div>`:`<p class="note" style="margin:12px 0 0">${MU.busy?'Searching…':MU.lib==='search'?(MU.sres?'No results.':'Search your YouTube Music.'):'Nothing here yet.'}</p>`}`;
+  const pinned=MU.fav.some(f=>f.q===MU.q.trim()&&f.src===MU.src&&f.kind===MU.kind);
+  return head('Music','Spotify on your Echo Dots, with your YouTube Music library')+`<div class="grid">
+   <div class="card glass"><h3>Now playing${N.on?`<span class="pill ${pl?'ok':''}">${pl?'Playing':'Paused'}</span>`:`<span class="pill">Idle</span>`}</h3>
+     <div class="mu-now" style="margin-top:12px">${cover}<div class="mu-txt">${nowTxt}</div></div>
+     <div class="mu-ctrl"><button class="btn" data-mu="prev" aria-label="Previous">${ic('mprev')}</button><button class="btn primary" data-mu="pause" aria-label="${pl?'Pause':'Play'}">${ic(pl?'mpause':'mplay')}</button><button class="btn" data-mu="next" aria-label="Next" ${muReal()&&!muNext(N.s)?'disabled':''}>${ic('mnext')}</button><button class="btn" data-mu="stop" aria-label="Stop">${ic('mstop')}</button></div>
+     <div class="lbl">Volume</div>${vol||'<p class="note">Pick a room first.</p>'}</div>
    <div class="card glass"><h3>Where<span class="pill ${T.ok?'ok':'warn'}">${T.ok?esc(T.label):'Not ready'}</span></h3>
      <div class="mu-rooms">${MU_ROOMS.map(room).join('')}</div>
      <div class="row"><button class="btn small" data-mu="everywhere">${ic('echo')}Everywhere</button></div>
-     ${T.ok?`<p class="note" style="margin:10px 0 0">${T.group?`Plays in sync through the Alexa group “${esc(T.group.name)}”.`:'One speaker.'}</p>`:`<p class="note" style="margin:10px 0 0">${esc(T.hint)}</p>`}</div>
-   <div class="card glass"><h3>Play</h3>
-     <div style="margin:12px 0 10px">${seg(Object.entries(MU_SVC),MU.src,'musrc','Music service')}</div>
-     <div style="margin:0 0 10px">${seg(MU_KINDS,MU.kind,'mukind','What kind')}</div>
+     <p class="note" style="margin:10px 0 0">${T.ok?(T.suffix?`Plays in sync through the Alexa group “${esc(T.suffix.slice(4))}”.`:'One speaker.'):esc(T.hint)}</p></div>
+   <div class="card glass"><h3>Your YouTube Music</h3>
+     <div style="margin-top:12px">${seg([['pl','Playlists'],['liked','Liked songs'],['search','Search']],MU.lib,'mulib','Library')}</div><p class="note" style="margin:10px 0 0">Plays the same song on Spotify through Alexa. Your own playlists play if a Spotify playlist has the same name.</p>${lib}</div>
+   <div class="card glass"><h3>Ask Alexa</h3>
+     <div style="margin:12px 0 10px">${seg(MU_KINDS,MU.kind,'mukind','What kind')}</div>
      <input id="muQ" class="mu-in" type="text" value="${esc(MU.q)}" placeholder="${MU.kind==='playlist'?'Playlist name':MU.kind==='artist'?'Artist':MU.kind==='album'?'Album':'Song, artist, genre…'}" aria-label="What to play" autocomplete="off">
-     <div class="row" style="margin-top:12px"><button class="btn primary" data-mu="play" ${T.ok?'':'disabled'}>${ic('mplay')}Play on ${MU_SVC[MU.src]}</button></div>
-     ${LIVE.on?'':`<p class="note" style="margin:10px 0 0">Demo: in Home Assistant this runs <code>alexa_devices.send_text_command</code>.</p>`}</div>
-   <div class="card glass"><h3>Now playing${(MU.last||spNow)?`<span class="pill ${MU.paused||spNow?.state==='paused'?'':'ok'}">${MU.paused||spNow?.state==='paused'?'Paused':'Playing'}</span>`:''}</h3>
-     <div class="mu-now" style="margin-top:12px">${cover}<div class="mu-txt">${nowTxt}</div></div>
-     <div class="mu-ctrl"><button class="btn" data-mu="prev" aria-label="Previous">${ic('mprev')}</button><button class="btn primary" data-mu="pause" aria-label="${MU.paused?'Resume':'Pause'}">${ic(MU.paused?'mplay':'mpause')}</button><button class="btn" data-mu="next" aria-label="Next">${ic('mnext')}</button><button class="btn" data-mu="stop" aria-label="Stop">${ic('mstop')}</button></div>
-     <div class="lbl">Volume</div>${vol||'<p class="note">Pick a room first.</p>'}
-     ${LIVE.on&&!spNow?`<p class="note" style="margin:10px 0 0">Echo Dots don't report what is playing. Connect Spotify in Home Assistant to see the real track here.</p>`:''}</div>
-   ${MU.recent.length?`<div class="card glass"><h3>Recent</h3><div class="mu-chips">${MU.recent.map((r,i)=>`<button class="btn small" data-mu="recent" data-i="${i}" title="${esc(r.rooms.map(x=>muRoom(x)[1]).join(' + '))}">${esc(r.q)} <small style="opacity:.6">· ${MU_SVC[r.src]}</small></button>`).join('')}</div></div>`:''}
-   ${MU.pl?.length?`<div class="card glass"><h3>Your Spotify playlists</h3><div class="mu-chips">${MU.pl.map((p,i)=>`<button class="btn small" data-mu="pl" data-i="${i}">${esc(p.name)}</button>`).join('')}</div></div>`:''}
-   <div class="card glass"><h3>Accounts</h3>
-     <div class="kv"><span>${ic('music')}Spotify</span><span class="pill">${sp?'Linked in HA':'via Alexa'}</span></div>
-     <div class="kv"><span>${ic('music')}YouTube Music</span><span class="pill">via Alexa</span></div>
-     <div class="row" style="margin-top:12px"><button class="btn primary" data-mu="accounts">Connect accounts</button></div></div>
+     <div class="row" style="margin-top:12px"><button class="btn primary" data-mu="play" ${T.ok?'':'disabled'}>${ic('mplay')}Play on ${MU_SVC[MU.src]}</button><button class="btn mu-pin" data-mu="pin" aria-pressed="${pinned}" aria-label="${pinned?'Unpin':'Pin as favourite'}">${ic('star')}</button><button class="btn small" data-mu="accounts">Accounts</button></div>
+     ${MU.fav.length?`<div class="lbl">Favourites</div><div class="mu-chips" style="margin-top:0">${MU.fav.map((f,i)=>`<span class="mu-fv"><button class="btn small" data-mu="fav" data-i="${i}">${esc(f.q)} <small style="opacity:.6">· ${MU_SVC[f.src]}</small></button><button class="btn small" data-mu="unfav" data-i="${i}" aria-label="Remove ${esc(f.q)}">${ic('x')}</button></span>`).join('')}</div>`:''}
+     ${MU.recent.length?`<div class="lbl">Recent</div><div class="mu-chips" style="margin-top:0">${MU.recent.map((r,i)=>`<button class="btn small" data-mu="recent" data-i="${i}" title="${esc(r.rooms.map(x=>muRoom(x)[1]).join(' + '))}">${esc(r.q)} <small style="opacity:.6">· ${MU_SVC[r.src]}</small></button>`).join('')}</div>`:''}</div>
   </div>`}
 function drawMusicSheet(){
-  const sp=muSp(),T=muTarget();
+  const T=muTarget(),ma=muReal()?MU.cid:true;
   document.getElementById('sheet').innerHTML=`
-   <div class="hd"><div class="ico">${ic('music')}</div><div><b id="sheetTitle">Connect your music</b><small>Both services play on the Echo Dots through Alexa</small></div></div>
-   <div class="lbl">Spotify</div>
-   <ol class="mu-steps"><li>Open the Alexa app → More → Settings → Music &amp; Podcasts → Link New Service → Spotify.</li>
-     <li>Optional, for the real now-playing and your playlists here: link Spotify in Home Assistant too. It needs Spotify Premium and a free developer app (<a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com</a>, redirect URI <code>https://my.home-assistant.io/redirect/oauth</code>).</li></ol>
+   <div class="hd"><div class="ico">${ic('music')}</div><div><b id="sheetTitle">Connect your music</b><small>Spotify plays on the Echo Dots through Alexa</small></div></div>
+   <div class="lbl">Link in Alexa (needed to play)</div>
+   <ol class="mu-steps"><li>Open the Alexa app → More → Settings → Music &amp; Podcasts → Link New Service → Spotify.</li></ol>
    <div class="row"><a class="btn small" href="https://alexa.amazon.de/spa/index.html" target="_blank" rel="noopener">Open Alexa settings</a>
-     <a class="btn small" href="https://my.home-assistant.io/redirect/config_flow_start/?domain=spotify" target="_blank" rel="noopener">${sp?'Spotify is linked in HA · manage':'Link Spotify in HA'}</a>
-     <button class="btn small" data-mu="test" data-svc="spotify" ${T.ok?'':'disabled'}>Test on ${esc(T.label||'a room')}</button></div>
-   <div class="lbl">YouTube Music</div>
-   <ol class="mu-steps"><li>Alexa app → More → Settings → Music &amp; Podcasts → Link New Service → YouTube Music, and sign in with Google.</li>
-     <li>The YouTube video app can't play on an Echo Dot. YouTube Music is the one that works.</li></ol>
-   <div class="row"><a class="btn small" href="https://alexa.amazon.de/spa/index.html" target="_blank" rel="noopener">Open Alexa settings</a>
-     <button class="btn small" data-mu="test" data-svc="ytm" ${T.ok?'':'disabled'}>Test on ${esc(T.label||'a room')}</button></div>
-   <p class="note" style="margin:14px 0 0">The test says “play music on …” to the selected rooms. If a service isn't linked, Alexa tells you out loud. Home Assistant can't see which music services Alexa has linked.</p>
+     <button class="btn small" data-mu="test" data-svc="spotify" ${T.ok?'':'disabled'}>Test Spotify on ${esc(T.label||'a room')}</button></div>
+   <p class="note" style="margin:10px 0 0">The test says “play music on …” to the selected rooms. If Spotify isn't linked, Alexa tells you out loud. Spotify playlists here would need Spotify Premium.</p>
+   <div class="lbl">YouTube Music library <span class="pill ${ma?'ok':'warn'}">${ma?'Connected':'Not connected'}</span></div>
+   <ol class="mu-steps"><li>In Home Assistant install the apps “Music Assistant” and “YT Music PO Token Generator”.</li>
+     <li>In Music Assistant add the YouTube Music provider with your browser cookie (it must contain <code>__Secure-3PAPISID</code>).</li>
+     <li>In Home Assistant add the Music Assistant integration.</li></ol>
+   <p class="note" style="margin:0 0 8px">Amazon doesn't offer YouTube Music on Alexa here, so items play on Spotify. To play your own YouTube Music playlists, copy them to Spotify once (e.g. tunemymusic.com) with the same names.</p>
+   <p class="note" style="margin:0">If your playlists disappear, the cookie expired: paste a fresh one in Music Assistant → Settings → Providers → YouTube Music.</p>
    <div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn primary" data-close>Done</button></div>`}
 
 /* ---------- actions (each becomes a hass.callService call after deployment) ---------- */
@@ -1414,7 +1440,7 @@ document.addEventListener('click',e=>{
   const d={...b.dataset},v=S[VAC]; // copy: render() morphs this very button in place, and a live dataset would change under the handler
   const keepOff=()=>toast('Vacation mode keeps lights and plugs off');
   if(LIVE.on&&LIVE.click(d))return;
-  if(d.murm||d.musrc||d.mukind||'mu' in d)return musicAct(d);
+  if(d.murm||d.musrc||d.mukind||d.mulib||'mu' in d)return musicAct(d);
   if(d.vdstart){VD.startMode=d.vdstart;drawSheet()}
   else if(d.vdend){VD.endMode=d.vdend;drawSheet()}
   else if(d.vdevery){VD.robotEvery=+d.vdevery;drawSheet()}
@@ -1452,6 +1478,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('input',e=>{
   const t=e.target;
   if(t.id==='muQ'){MU.q=t.value;return}
+  if(t.id==='muS'){MU.sq=t.value;return}
   if(t.dataset.muvol){const v=document.getElementById('muV-'+t.dataset.muvol);if(v)v.textContent=t.value+'%';return}
   if(t.dataset.bri){S[t.dataset.bri].bri=+t.value;const st=t.closest('.tile').querySelector('.st');const en=S[t.dataset.bri];st.textContent=`${en.bri}%${en.kelvin?` · ${en.kelvin} K`:''}`;return}
   if(!sheetId)return;const en=S[sheetId];
@@ -1465,7 +1492,7 @@ document.addEventListener('change',e=>{const t=e.target;
   if(t.dataset.muvol){muVolSet(t.dataset.muvol,+t.value);return}
   if(sheetId==='vacation'&&t.id?.startsWith('vd-')){if(t.value)VD[{'vd-start':'start','vd-end':'end','vd-time':'robotTime'}[t.id]]=t.value;drawSheet();return}
   if(t.dataset.bri)update();else if(sheetId&&e.target.id?.startsWith('sh-')){update()}});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sheetId)closeSheet();if(e.key==='Enter'&&e.target.id==='muQ')musicAct({mu:'play'})});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sheetId)closeSheet();if(e.key==='Enter'&&(e.target.id==='muQ'||e.target.id==='muS'))musicAct({mu:e.target.id==='muQ'?'play':'search'})});
 
 /* ---------- live mode: inside Home Assistant (Webpage dashboard, same origin) read and drive real entities ---------- */
 /* ---------- demo: no Home Assistant parent -> fake hass from the embedded scrubbed snapshot (tools/demo_snapshot.py), LIVE runs on it unchanged ---------- */

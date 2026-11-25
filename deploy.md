@@ -265,7 +265,18 @@ The dashboard and packages use these IDs. For each one: Settings → Entities �
 - whether `--ha-card-backdrop-filter`-style blur works without card-mod
 
 ## Music on the Echo Dots (Music tab)
-The Music tab plays Spotify or YouTube Music on the three Echo Dots through Alexa (`alexa_devices.send_text_command`), so both services must be linked **in the Alexa app**.
-1. Alexa app → More → Settings → Music & Podcasts → Link New Service → **Spotify**, then **YouTube Music**. (The YouTube video app can't play on an Echo Dot.)
-2. Two rooms together need an Alexa **speaker group** per pair: Devices → + → Combine speakers → Speaker group. Name them `Kitchen and Living Room`, `Kitchen and Studio`, `Living Room and Studio`. `Everywhere` already exists. Then reload the **Alexa Devices** integration in HA; the groups show up as devices with model "Speaker Group".
-3. Optional, for real now-playing and your playlists in the dashboard: add the **Spotify** integration in HA (needs Spotify Premium and a free developer app; redirect URI `https://my.home-assistant.io/redirect/oauth`).
+How it works (tested live 2026-11-25):
+- **Now playing and controls** come from the Echo entities themselves (`media_player.echo_*`, `media_player.everywhere`): track, artist, cover, play/pause, next, stop, volume. Echo Dots have no "previous", so the dashboard asks Alexa instead.
+- **Starting music** always goes through Alexa (`alexa_devices.send_text_command`), because nothing else may start playback on an Echo. Text sent to a speaker-group device is ignored, so for several rooms the dashboard sends to one member Echo and adds the group name: "play Joji on Spotify on Everywhere".
+- **Everything plays on Spotify** (Free is fine), by name through Alexa. Amazon doesn't offer YouTube Music on Alexa for this account (amazon.de; the service isn't in the Alexa app's list), so the Echos can't play from YouTube Music.
+- **Your YouTube Music library** (playlists, liked songs, search) comes from Music Assistant, used only as a catalogue. Tapping a song, album or artist plays the same thing on Spotify. Your own playlists play if a Spotify playlist has the same name: copy them over once (for example with tunemymusic.com). Music Assistant's generated lists (Infinite Mix, Random…) are hidden.
+- Rejected: Music Assistant's experimental Alexa skill. It has no multi-room or Alexa groups, needs a separate Docker host and your own domain, and makes the Music Assistant stream public.
+
+Setup:
+1. Alexa app → More → Settings → Music & Podcasts: **Spotify** must be linked (it is).
+2. HA → Settings → Apps → App store → install and start **YT Music PO Token Generator**, then **Music Assistant** (both from the Music Assistant repository, already added).
+3. Open Music Assistant → Settings → Providers → Add → **YouTube Music**. Paste the cookie: in an incognito window, sign in at music.youtube.com, open the developer tools → Network, click any request to `music.youtube.com`, and copy the whole `cookie` request header. It must contain `__Secure-3PAPISID`. Leave any player providers that would stream to the Echos switched off.
+4. HA → Settings → Devices & services → the discovered **Music Assistant** → Configure.
+5. Optional: to play two rooms without the third, create an Alexa **speaker group** per pair (Devices → + → Combine speakers), named `Kitchen and Living Room`, `Kitchen and Studio`, `Living Room and Studio`, then reload **Alexa Devices** in HA.
+
+**When the playlists disappear:** the YouTube cookie has expired (Music Assistant logs `401: Unauthorized` or `Unable to fetch PO Token`). Repeat step 3 with a fresh cookie. Playback and the controls keep working in the meantime.
