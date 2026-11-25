@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Publish both dashboards to Home Assistant.
-1. Liquid Glass (main): copies dashboard/index.html to /config/www/liquid-glass/ over SSH and points the
+1. Liquid Glass (main): copies dashboard/index.html (+ animations/*.json) to /config/www/liquid-glass/ over SSH and points the
    "liquid-glass" Webpage dashboard at it (cache-busting ?v=). The page detects Home Assistant and goes live.
 2. Home (fallback): ha/dashboards/home.yaml with built-in cards; tiles for missing entities become placeholders.
 Usage: python3 tools/deploy_dashboard.py
@@ -39,8 +39,9 @@ ws({"type": "lovelace/config/save", "url_path": url, "config": cfg})
 print("saved; placeholders for", len(missing), "missing entities:", sorted(set(missing)))
 
 ssh = ["-i", str(Path("~/.ssh/ha_green").expanduser())]
-subprocess.run(["ssh", *ssh, "root@192.168.178.57", "mkdir -p /config/www/liquid-glass"], check=True)
+subprocess.run(["ssh", *ssh, "root@192.168.178.57", "mkdir -p /config/www/liquid-glass/animations"], check=True)
 subprocess.run(["scp", "-q", *ssh, str(ROOT / "dashboard/index.html"), "root@192.168.178.57:/config/www/liquid-glass/index.html"], check=True)
+subprocess.run(["scp", "-q", *ssh, *map(str, sorted((ROOT / "dashboard/animations").glob("*.json"))), "root@192.168.178.57:/config/www/liquid-glass/animations/"], check=True)  # lottie files, loaded by relative path
 if "liquid-glass" not in {d["url_path"] for d in ws({"type": "lovelace/dashboards/list"})}:
     ws({"type": "lovelace/dashboards/create", "url_path": "liquid-glass", "title": "Liquid Glass", "icon": "mdi:home-variant", "show_in_sidebar": True, "require_admin": False})
 ws({"type": "lovelace/config/save", "url_path": "liquid-glass", "config": {"strategy": {"type": "iframe", "url": f"/local/liquid-glass/index.html?v={int(time.time())}"}}})

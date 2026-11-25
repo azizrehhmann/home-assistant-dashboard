@@ -23,11 +23,11 @@ ATTRS = {"friendly_name", "device_class", "unit_of_measurement", "supported_colo
          "fan_speed", "id", "last_triggered", "entity_id", "options", "min", "max", "step", "has_date", "has_time",
          "icon", "installed_version", "latest_version", "title", "hvac_modes", "min_temp", "max_temp", "battery_level",
          "min_color_temp_kelvin", "max_color_temp_kelvin"}
-BAD_ID = re.compile(r"fritz|gmail|@|iphone|phone|(^|[._])(ip|mac|ssid|bssid|wifi|gps)([._]|$)|device_tracker|bridge_x_\d")  # bridge_x_<serial> is a device serial
+BAD_ID = re.compile(r"\d{10,}|fritz|gmail|@|iphone|phone|(^|[._])(ip|mac|ssid|bssid|wifi|gps)([._]|$)|device_tracker|bridge_x_\d")  # bridge_x_<serial> is a device serial
 AUTO_KEYS = ("id", "alias", "description", "mode", "triggers", "conditions", "actions")
 EMAIL = r"[\w.+-]+@[\w-]+\.[\w.-]+"
 IPV4 = r"\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b"
-FORBIDDEN = [r'"(latitude|longitude|gps|gps_accuracy|entity_picture|user_id)"', EMAIL, IPV4,
+FORBIDDEN = [r"[a-z_]+\.[a-z0-9_]*\d{10,}", r'"(latitude|longitude|gps|gps_accuracy|entity_picture|user_id)"', EMAIL, IPV4,
              r"[A-Za-z0-9+/=]{32,}", r"eyJ[A-Za-z0-9_-]{10,}"]
 
 

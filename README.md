@@ -10,6 +10,7 @@ Rebuilding a flat's smart home on Home Assistant (HA Green) with a liquid-glass,
 - `deploy.md`: step-by-step checklist to get every device into Home Assistant (HA Green, 2026.11+), with sources.
 - `ha/themes/liquid_glass.yaml`: light/dark theme in the mock's colours (blur via card-mod).
 - **Live dashboard:** `dashboard/index.html` doubles as the real dashboard. Inside Home Assistant (the "Liquid Glass" Webpage dashboard) it reads and controls real entities; opened on its own it runs **demo mode**: a scrubbed snapshot of the real home (no locations, emails, IPs or tokens) embedded in the page, fully interactive but nothing is sent anywhere. Refresh the snapshot with `python3 tools/demo_snapshot.py`. Publish with `python3 tools/deploy_dashboard.py`.
+- **Appliance animations:** `dashboard/animations/` holds Lottie loops for the washer (idle, washing, rinsing, spinning, done) and the Roborock (docked, vacuuming, mopping, returning, charging), chosen from live state. lottie-web loads from cdnjs; without it the static icon shows. The deploy script copies them to `/config/www/liquid-glass/animations/`.
   - Home "Right now" activity strip (live only): animated cards for washer, robot, who is home, heating and music, shown only while true.
   - Home "Nerd stats" (live only, collapsible): entity counts, Thread, robot lifetime and consumables, batteries, internet, grid, 24 h sparklines.
   - Appliances Echo card: volume slider and mute per Echo Dot.
