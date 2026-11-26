@@ -45,7 +45,7 @@ def scrub_states(raw):
         if eid.startswith("person."):
             a = {"friendly_name": a.get("friendly_name")}
         out.append({"entity_id": eid, "state": s["state"], "attributes": a,
-                    "last_changed": s["last_changed"], "last_updated": s["last_updated"]})
+                    "last_changed": s["last_changed"]})  # last_updated is never read from the snapshot (~35 KB)
     return out
 
 
