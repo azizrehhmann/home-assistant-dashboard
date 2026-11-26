@@ -236,6 +236,18 @@ h2 .end{margin-left:auto}
 @keyframes pulse{50%{opacity:.35}}
 .pulse{animation:pulse 1.6s ease-in-out infinite}
 .note{font-size:12.5px;color:var(--fg-3)}
+.tile .hit:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.hnow{display:flex;align-items:baseline;gap:10px;margin:14px 0 4px}.hnow b{font-family:var(--font-d);font-size:38px;font-weight:650;font-variant-numeric:tabular-nums;line-height:1}.hnow small{font-size:15px;color:var(--fg-3);font-weight:500}
+.hc{position:relative}.hc svg{display:block;width:100%;height:auto;touch-action:pan-y;cursor:crosshair}
+.hc .gr line{stroke:var(--hair);stroke-width:1}.hc text{fill:var(--fg-3);font-size:10px}
+.hc .ln{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;vector-effect:non-scaling-stroke}.hc .area{fill:color-mix(in srgb,var(--accent) 16%,transparent)}.hc .band{fill:color-mix(in srgb,var(--accent) 20%,transparent)}
+.hc .xl{stroke:var(--fg-3);stroke-width:1;stroke-dasharray:3 3}.hc .xd{fill:var(--accent);stroke:var(--glass-strong);stroke-width:2}
+.tip{position:absolute;transform:translate(-50%,-135%);padding:5px 10px;border-radius:12px;background:var(--fg);color:var(--glass-strong);font-size:12.5px;font-weight:600;white-space:nowrap;pointer-events:none;font-variant-numeric:tabular-nums}
+.hg{display:block;width:min(240px,70%);margin:8px auto 0}.hg path{fill:none;stroke-width:10}.hg .tk{stroke:var(--fg-3);stroke-width:1.5}.hg text{fill:var(--fg-3);font-size:9px}.hg .gw{font-size:15px;font-weight:700}.hg .nd{fill:var(--fg);stroke:var(--glass-strong);stroke-width:3}
+.hst{display:flex;gap:8px;margin-top:12px}.hst div{flex:1;padding:8px 10px;border-radius:14px;background:var(--hair)}.hst small{display:block;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:.06em}.hst b{font-size:14px;font-variant-numeric:tabular-nums}
+.htl{margin-top:12px}.htl svg{display:block;width:100%;height:26px}.htl rect{fill:var(--accent)}.htl .tr{fill:var(--hair)}.hax{display:flex;justify-content:space-between;font-size:11.5px;color:var(--fg-3);margin-top:6px}
+.hmsg{padding:34px 0;text-align:center}
+.kv button.sp{padding:0;color:inherit}
 .mu-rooms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 12px}
 .mu-room{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:18px;background:var(--hair);border:1.5px solid transparent;font-weight:600;font-size:13.5px;color:var(--fg-2);transition:background .2s,border-color .2s}
 .mu-room .i{width:26px;height:26px}
@@ -508,11 +520,11 @@ function lightTile(id){
 }
 function sensorTile(id){
   const e=S[id];if(e.available===false)return offTile(e,e.kind); const st=e.kind==='door'?(e.on?'Open':'Closed'):e.kind==='motion'?(e.on?'Motion now':`Clear · ${e.last}`):(e.on?'Occupied':'Clear');
-  return `<div class="tile glass ${e.on?'on':''}"><div class="ico">${ic(e.kind)}</div><div><div class="nm">${esc(e.name)}</div><div class="st">${st}</div></div></div>`;
+  return `<div class="tile glass ${e.on?'on':''}"><button class="hit" data-hist="${id}" aria-label="${esc(e.name)} history"></button><div class="ico">${ic(e.kind)}</div><div><div class="nm">${esc(e.name)}</div><div class="st">${st}</div></div></div>`;
 }
 const echoInfo=(e)=>[e.present==null?null:e.present?'Someone here':`No one${e.presLast?' · '+e.presLast:''}`,e.temp!=null?`${e.temp.toFixed(1)}°`:null,e.lux!=null?`${Math.round(e.lux)} lx`:null].filter(Boolean).join(' · ');
-const infoTile=(icon,name,st,cls='')=>`<div class="tile glass ${cls}"><div class="ico">${icon[0]==='<'?icon:ic(icon)}</div><div><div class="nm">${esc(name)}</div><div class="st">${st}</div></div></div>`;
-const thermoTile=(t)=>t.available===false?infoTile('climate',t.name,'Offline','off-line'):infoTile('climate',t.name,`${t.temp.toFixed(1)}°${t.hum!=null?` · ${Math.round(t.hum)} %`:''}`);
+const infoTile=(icon,name,st,cls='',hist)=>`<div class="tile glass ${cls}">${hist?`<button class="hit" data-hist="${hist}" aria-label="${esc(name)} history"></button>`:''}<div class="ico">${icon[0]==='<'?icon:ic(icon)}</div><div><div class="nm">${esc(name)}</div><div class="st">${st}</div></div></div>`;
+const thermoTile=(t,hist)=>t.available===false?infoTile('climate',t.name,'Offline','off-line'):infoTile('climate',t.name,`${t.temp.toFixed(1)}°${t.hum!=null?` · ${Math.round(t.hum)} %`:''}`,'',hist);
 function vacStatus(){const v=S[VAC];
   if(v.status==='Cleaning')return `Cleaning ${roomName(v.room||'studio')} · pass ${v.pass}/${v.repeat}`;
   return v.status;}
@@ -584,7 +596,7 @@ function activity(){
 
 /* Nerd stats (live only): collapsible; the 24 h history is fetched when it opens and cached for 5 min */
 const STAT={open:false,h:null,hAt:0};
-const STAT_H=[...['living_room','studio','bedroom','bathroom'].map(r=>[`sensor.${r}_temperature`,r==='living_room'?'Living Room':roomName(r),1,'°']),['sensor.air_quality_co2','CO₂',0,' ppm']];
+const STAT_H=[...['living_room','studio','bedroom','bathroom'].map(r=>[`sensor.${r}_temperature`,r==='living_room'?'Living Room':roomName(r),1,'°',r]),['sensor.air_quality_co2','CO₂',0,' ppm','aq']];
 function statHist(){
   if(!LIVE.on||Date.now()-STAT.hAt<3e5)return;STAT.hAt=Date.now();
   const t0=new Date(Date.now()-864e5).toISOString();
@@ -607,7 +619,7 @@ function statsBody(){
   const fr=(k)=>st('sensor.fritz_box_7590_'+k), up=fr('connection_uptime');
   const f1=(x,d=1)=>x==null?'—':(+x).toLocaleString(undefined,{maximumFractionDigits:d});
   const up_h=ok(up)?Math.round((Date.now()-new Date(up.state))/36e5):null;
-  const hist=STAT_H.map(([id,n,d,u])=>{const p=STAT.h?.[id],cur=num(id);return `<div class="kv"><span>${n}</span><span class="sp">${STAT.h?spark(p):'<span class="note">loading…</span>'}<b>${cur==null?'—':f1(cur,d)+u}</b></span></div>`}).join('');
+  const hist=STAT_H.map(([id,n,d,u,hk])=>{const p=STAT.h?.[id],cur=num(id);return `<div class="kv"><span>${n}</span><span class="sp">${STAT.h?`<button class="sp" data-hist="${hk}" aria-label="${n} history">${spark(p)}</button>`:'<span class="note">loading…</span>'}<b>${cur==null?'—':f1(cur,d)+u}</b></span></div>`}).join('');
   return `<div class="sgrid">
    <div><div class="lbl">Home</div>${kv('Entities',`${keys.length} · ${bad} unavailable`)}${kv('Automations run in 24 h',au)}
      <div class="thm" style="padding-top:10px">${Object.entries(dom).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([d,n])=>`<span class="pill">${d} ${n}</span>`).join('')}</div>
@@ -621,6 +633,90 @@ function statsBody(){
    <div><div class="lbl">Last 24 hours</div>${hist}</div></div>`}
 const statsSection=()=>LIVE.on?`<details class="sec stats glass" id="stats" ${STAT.open?'open':''}><summary>${ic('sliders')}Nerd stats</summary>${STAT.open?statsBody():''}</details>`:'';
 document.addEventListener('toggle',e=>{if(e.target.id!=='stats')return;STAT.open=e.target.open;if(STAT.open){statHist();render()}},true);
+
+/* ---------- history sheets: one chart per sensor, hand-drawn SVG; reads recorder via hass (history/period, statistics_during_period) ---------- */
+const hSer=(r)=>[[`sensor.${r}_temperature`,'Temperature','°',1],[`sensor.${r}_humidity`,'Humidity','%',0],[`sensor.${r}_heating_power`,'Heating','%',0]];
+const HIST={
+  aq:{title:'Air quality',small:'Living room',icon:'leaf',series:[['sensor.air_quality_co2','CO₂',' ppm',0],['sensor.air_quality_pm25','PM2.5',' µg/m³',0],['sensor.air_quality_temperature','Temperature','°',1],['sensor.air_quality_humidity','Humidity','%',0]]},
+  living_room:{title:'Living room',small:'Climate',icon:'climate',series:hSer('living_room')},
+  studio:{title:'Studio',small:'Climate',icon:'climate',series:hSer('studio')},
+  bedroom:{title:'Bedroom',small:'Climate',icon:'climate',series:hSer('bedroom')},
+  bathroom:{title:'Bathroom',small:'Climate',icon:'climate',series:hSer('bathroom')},
+  kitchen_thermo:{title:'Kitchen thermometer',small:'Govee',icon:'climate',series:[['sensor.kitchen_thermometer_temperature','Temperature','°',1],['sensor.kitchen_thermometer_humidity','Humidity','%',0]]},
+  bathroom_thermo:{title:'Bathroom thermometer',small:'Govee',icon:'climate',series:[['sensor.bathroom_thermometer_temperature','Temperature','°',1],['sensor.bathroom_thermometer_humidity','Humidity','%',0]]},
+  studio_lux:{title:'Studio light level',small:'Studio',icon:'lux',series:[['sensor.studio_illuminance','Light',' lx',0],['sensor.echo_studio_illuminance','Echo light',' lx',0]]},
+  grid:{title:'Grid CO₂ intensity',small:'Electricity Maps',icon:'leaf',series:[['sensor.electricity_maps_co2_intensity','CO₂ intensity',' g/kWh',0]]},
+};
+for(const r of ['living_room','kitchen','studio'])HIST['echo_'+r]={title:roomName(r==='living_room'?'living':r)+' Echo Dot',small:'Echo',icon:'echo',series:[[`sensor.echo_${r}_temperature`,'Temperature','°',1],[`sensor.echo_${r}_illuminance`,'Light',' lx',0]]};
+// a binary_sensor / light / switch id is its own timeline "key"
+const hdef=(key)=>{const d=HIST[key]||{title:S[key]?.name||key,small:roomName(S[key]?.area),icon:S[key]?.kind||'sliders',bin:1,series:[[key,'','',0]]};
+  return {...d,series:d.series.filter(s=>!LIVE.on||LIVE.H().states[s[0]])}}; // only sensors this home really has
+const HR={'24h':864e5,'7d':6048e5,'30d':2592e6},HC={},H_={i:0,rg:'24h'},HW=340,HP=4,HT=170;
+const hBin=(id)=>/^(binary_sensor|light|switch)\./.test(id);
+/* points [t,v] (30 d: [t,mean,min,max]); null while loading, [] when empty; cached 5 min per id+range */
+function hGet(id,rg){const k=id+'|'+rg,c=HC[k];if(c&&Date.now()-c.at<3e5)return c.p;
+  const e=HC[k]={at:Date.now(),p:[]};if(!LIVE.on)return e.p;
+  e.p=null;const H=LIVE.H(),now=Date.now(),t0=now-HR[rg],fin=(p)=>{e.p=p;if(sheetId)drawSheet()};
+  if(rg==='30d')H.callWS({type:'recorder/statistics_during_period',start_time:new Date(t0).toISOString(),statistic_ids:[id],period:'day',types:['mean','min','max']})
+    .then(r=>fin((r?.[id]||[]).filter(x=>x.mean!=null).map(x=>[x.start,x.mean,x.min,x.max])),()=>fin([])); // ids without long-term statistics are simply absent
+  else H.callApi('GET',`history/period/${new Date(t0).toISOString()}?filter_entity_id=${id}&end_time=${encodeURIComponent(new Date(now).toISOString())}&minimal_response&no_attributes`).then(r=>{
+    let p=(r?.[0]||[]).map(x=>[Math.max(t0,new Date(x.last_changed||x.last_updated).getTime()),hBin(id)?(x.state==='on'?1:x.state==='off'?0:NaN):+x.state]).filter(x=>!isNaN(x[0])&&!isNaN(x[1]));
+    if(!hBin(id)&&p.length>200){const n=Math.ceil(p.length/200),q=[];for(let i=0;i<p.length;i+=n){const g=p.slice(i,i+n),m=(j)=>g.reduce((a,x)=>a+x[j],0)/g.length;q.push([m(0),m(1)])}p=q}
+    fin(p)},()=>fin([]));
+  return null}
+const fmtN=(v,d)=>(+v).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+const hT=(t,rg)=>rg==='24h'?hhmm(t):rg==='7d'?new Date(t).toLocaleDateString([],{weekday:'short'})+' '+hhmm(t):new Date(t).toLocaleDateString([],{day:'numeric',month:'short'});
+function hChart(p,rg,s){const [,,u,d]=s,band=p[0].length>2,vs=p.flatMap(x=>band?[x[2],x[3]]:[x[1]]),lo0=Math.min(...vs),hi0=Math.max(...vs),pad=(hi0-lo0||1)*.08,lo=lo0-pad,hi=hi0+pad,
+    t0=p[0][0],dt=(p[p.length-1][0]-t0)||1,B=HT-22,x=(t)=>HP+(t-t0)/dt*(HW-2*HP),y=(v)=>10+(1-(v-lo)/(hi-lo))*(B-10),
+    L=(a)=>a.map((q,i)=>`${i?'L':'M'}${x(q[0]).toFixed(1)} ${y(q[1]).toFixed(1)}`).join('');
+  H_.pts=p;H_.x=x;H_.y=y;H_.u=u;H_.d=d;
+  const grid=[lo0,(lo0+hi0)/2,hi0].map(v=>`<line x1="0" x2="${HW}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${HP}" y="${(y(v)-3).toFixed(1)}">${fmtN(v,d)}</text>`).join('');
+  return `<div class="hc"><svg viewBox="0 0 ${HW} ${HT}" role="img" aria-label="${esc(s[1])} chart, ${hT(t0,rg)} to ${hT(t0+dt,rg)}">
+   <g class="gr">${grid}</g>${band?`<path class="band" d="${L(p.map(q=>[q[0],q[3]]))}${p.slice().reverse().map(q=>`L${x(q[0]).toFixed(1)} ${y(q[2]).toFixed(1)}`).join('')}Z"/>`:`<path class="area" d="${L(p)}L${x(p[p.length-1][0]).toFixed(1)} ${B}L${x(t0).toFixed(1)} ${B}Z"/>`}
+   <path class="ln" d="${L(p)}"/><g class="gx"><text x="${HP}" y="${HT-6}">${hT(t0,rg)}</text><text x="${HW/2}" y="${HT-6}" text-anchor="middle">${hT(t0+dt/2,rg)}</text><text x="${HW-HP}" y="${HT-6}" text-anchor="end">${hT(t0+dt,rg)}</text></g>
+   <line class="xl" y1="6" y2="${B}" style="display:none"/><circle class="xd" r="4.5" style="display:none"/></svg><div class="tip" role="status" hidden></div></div>`}
+function hTip(e){const svg=e.target.closest?.('.hc svg'),p=H_.pts;if(!svg||!p)return;
+  const r=svg.getBoundingClientRect(),t0=p[0][0],dt=(p[p.length-1][0]-t0)||1,f=Math.min(1,Math.max(0,((e.clientX-r.left)/r.width*HW-HP)/(HW-2*HP))),t=t0+f*dt;
+  const q=p.reduce((a,c)=>Math.abs(c[0]-t)<Math.abs(a[0]-t)?c:a),X=H_.x(q[0]),Y=H_.y(q[1]),tip=svg.parentNode.querySelector('.tip');
+  const xl=svg.querySelector('.xl'),xd=svg.querySelector('.xd');xl.setAttribute('x1',X);xl.setAttribute('x2',X);xd.setAttribute('cx',X);xd.setAttribute('cy',Y);xl.style.display=xd.style.display='';
+  tip.textContent=`${hT(q[0],H_.rg)} · ${fmtN(q[1],H_.d)}${H_.u}`;tip.hidden=false;tip.style.left=Math.min(82,Math.max(18,X/HW*100))+'%';tip.style.top=(Y/HT*100)+'%'}
+document.addEventListener('pointermove',hTip);document.addEventListener('pointerdown',hTip);
+function hGauge(v){const cx=100,cy=98,r=74,A=(x,k=r)=>{const a=Math.PI*(1-Math.min(1,Math.max(0,(x-400)/1600)));return [(cx+k*Math.cos(a)).toFixed(1),(cy-k*Math.sin(a)).toFixed(1)]},
+    arc=(a,b,c)=>`<path d="M${A(a)}A${r} ${r} 0 0 1 ${A(b)}" style="stroke:var(--${c})"/>`,[nx,ny]=A(v),w=v<800?['Good','ok']:v<1200?['Fair','warn']:['Poor','bad'];
+  return `<svg class="hg" viewBox="0 -12 200 124" role="img" aria-label="CO₂ ${Math.round(v)} ppm, ${w[0]}">${arc(400,800,'ok')}${arc(800,1200,'warn')}${arc(1200,2000,'bad')}
+   ${[400,800,1200,1600,2000].map(t=>`<line class="tk" x1="${A(t,r+7)[0]}" y1="${A(t,r+7)[1]}" x2="${A(t,r+13)[0]}" y2="${A(t,r+13)[1]}"/>`).join('')}
+   ${[800,1200].map(t=>`<text x="${A(t,r+22)[0]}" y="${A(t,r+22)[1]}" text-anchor="middle">${t}</text>`).join('')}
+   <circle cx="${nx}" cy="${ny}" r="7" class="nd"/><text x="${cx}" y="${cy-6}" text-anchor="middle" class="gw" style="fill:var(--${w[1]})">${w[0]}</text></svg>`}
+/* on/off bars over the range + "N times today" */
+function hTL(p,rg){const now=Date.now(),t0=now-HR[rg],x=(t)=>((t-t0)/(now-t0)*HW).toFixed(1),md=new Date().setHours(0,0,0,0),n=p.filter((q,i)=>i&&q[1]&&q[0]>=md).length;
+  return `<div class="htl"><svg viewBox="0 0 ${HW} 26" preserveAspectRatio="none" role="img" aria-label="On and off over the last ${rg==='24h'?'24 hours':'7 days'}"><rect class="tr" width="${HW}" height="26" rx="6"/>${p.map((q,i)=>q[1]?`<rect x="${x(q[0])}" width="${Math.max(2,x(p[i+1]?p[i+1][0]:now)-x(q[0])).toFixed(1)}" height="26"/>`:'').join('')}</svg>
+   <div class="hax"><span>${hT(t0,rg)}</span><span>${n} time${n===1?'':'s'} today</span><span>now</span></div></div>`}
+const hDev=(id)=>{const p=hGet(id,'24h');return p===null?'<p class="note">Loading…</p>':p.length?hTL(p,'24h'):'<p class="note">No history yet</p>'};
+const haBtn=(id)=>id&&LIVE.on&&!DEMO?`<button class="btn" data-hopen="${id}">Open in Home Assistant</button>`:'';
+function openHA(id){try{parent.document.querySelector('home-assistant').dispatchEvent(new CustomEvent('hass-more-info',{detail:{entityId:id},bubbles:true,composed:true}));closeSheet()}catch(e){toast('Could not open Home Assistant')}}
+function openHist(key,from){H_.i=0;H_.rg='24h';H_.pts=null;sheetId='hist:'+key;showSheet(from)}
+function drawHist(){
+  const key=sheetId.slice(5),D=hdef(key),ss=D.series,s=ss[Math.min(H_.i,ss.length-1)],rgs=D.bin?['24h','7d']:['24h','7d','30d'];
+  if(!rgs.includes(H_.rg))H_.rg='24h';
+  const rg=H_.rg,p=s?hGet(s[0],rg):[],ok=p&&p.length,live=s&&LIVE.on?LIVE.num(s[0]):null,last=ok?p[p.length-1][1]:null,now=live??last;
+  let body,stats='',trend='',gauge='';
+  if(p===null)body='<p class="note hmsg">Loading…</p>';
+  else if(!ok)body=`<p class="note hmsg">${rg==='30d'?'No long-term history for this sensor':'No history yet'}</p>`;
+  else if(D.bin)body=hTL(p,rg);
+  else{
+    body=hChart(p,rg,s);
+    const mn=Math.min(...p.map(x=>x[2]??x[1])),mx=Math.max(...p.map(x=>x[3]??x[1])),av=p.reduce((a,x)=>a+x[1],0)/p.length;
+    stats=`<div class="hst">${[['Min',mn],['Avg',av],['Max',mx]].map(([n,v])=>`<div><small>${n}</small><b>${fmtN(v,s[3])}${s[2]}</b></div>`).join('')}</div>`;
+    if(rg!=='30d'){const ref=[...p].reverse().find(x=>x[0]<=p[p.length-1][0]-36e5),dl=ref?last-ref[1]:0,th=Math.abs(av)*.02+Math.pow(10,-s[3])/2;
+      trend=`<span class="pill">${!ref||Math.abs(dl)<th?'Steady':dl>0?'↑ Rising':'↓ Falling'}</span>`}
+    if(s[0]==='sensor.air_quality_co2'&&now!=null)gauge=hGauge(now)}
+  const big=D.bin?(S[key]?.kind?({door:['Open','Closed'],motion:['Motion','Clear'],presence:['Occupied','Clear']})[S[key].kind][S[key].on?0:1]:''):now==null?'—':`${fmtN(now,s[3])}<small>${s[2]}</small>`;
+  const sh=document.getElementById('sheet');sh.style.removeProperty('--glow');
+  sh.innerHTML=`<div class="hd"><div class="ico off">${ic(D.icon)}</div><div><b id="sheetTitle">${esc(D.title)}</b><small>${esc(D.small||'')}</small></div></div>
+   ${ss.length>1?`<div class="toggles" style="margin-top:14px" role="group" aria-label="Series">${ss.map((x,i)=>`<button class="tog" data-hs="${i}" aria-pressed="${x===s}">${x[1]}</button>`).join('')}</div>`:''}
+   <div class="hnow"><b>${big}</b>${trend}</div>${gauge}${body}${stats}
+   <div class="seg full" style="margin-top:14px" role="group" aria-label="Range">${rgs.map(r=>`<button data-hr="${r}" aria-pressed="${r===rg}">${r==='24h'?'24 h':r==='7d'?'7 d':'30 d'}</button>`).join('')}</div>
+   <div class="row" style="margin-top:16px;justify-content:flex-end">${haBtn(s?.[0])}<button class="btn primary" data-close>Done</button></div>`}
 function vHome(){
   const h=new Date().getHours(), g=h<5?'Good night':h<12?'Good morning':h<18?'Good afternoon':'Good evening';
   const fav=['light.living_room_light_1','light.studio_lamp','light.bedside_lamp','light.tv_lights','light.kitchen_ceiling','switch.rice_cooker'];
@@ -640,12 +736,12 @@ function vRooms(){
     const sen=Object.keys(S).filter(k=>S[k].area===r.id&&S[k].kind);
     const ev=ids('event.',r.id), mp=ids('media_player.',r.id), c=S['climate.'+(r.id==='living'?'living_room':r.id)];
     const extra=[
-      ...(c?[infoTile('climate','Heating · tado°',`${c.cur.toFixed(1)}° now · ${c.hum}% humidity`)]:[]),
-      ...(r.id==='living'?[(a=>a.available?infoTile('leaf','Air quality',`${a.rating||'—'} · CO₂ ${a.co2??'—'} ppm · PM2.5 ${a.pm25??'—'}`):infoTile('leaf','Air Quality Monitor','Offline · re-pair in IKEA app','off-line'))(S['sensor.air_quality_monitor'])]:[]),
+      ...(c?[infoTile('climate','Heating · tado°',`${c.cur.toFixed(1)}° now · ${c.hum}% humidity`,'',r.id==='living'?'living_room':r.id)]:[]),
+      ...(r.id==='living'?[(a=>a.available?infoTile('leaf','Air quality',`${a.rating||'—'} · CO₂ ${a.co2??'—'} ppm · PM2.5 ${a.pm25??'—'}`,'','aq'):infoTile('leaf','Air Quality Monitor','Offline · re-pair in IKEA app','off-line'))(S['sensor.air_quality_monitor'])]:[]),
       ...(r.id==='kitchen'?[`<a href="#appliances" style="color:inherit;text-decoration:none">${infoTile(/^running$/i.test(S['sensor.washer'].status)?lottieSlot(washerAnim(),40,'washer'):'washer','Washing machine',`${S['sensor.washer'].status} · ${S['sensor.washer'].power===false?'tap to control':'done '+S['sensor.washer'].finish}`,'on')}</a>`]:[]),
-      ...(S[`sensor.${r.id}_thermometer`]?[thermoTile(S[`sensor.${r.id}_thermometer`])]:[]),
-      ...(r.id==='studio'?[infoTile('lux','Light level',`${S['sensor.studio_illuminance'].lux} lx · ${luxLabel(S['sensor.studio_illuminance'].lux)}`),infoTile(['Cleaning','Returning'].includes(S[VAC].status)?lottieSlot(robotAnim(),40,'robot'):'robot','Roborock Q5 Pro',`${vacStatus()} · ${S[VAC].battery}%`,S[VAC].status==='Cleaning'?'on':'')]:[]),
-      ...mp.map(k=>k==='media_player.living_room_tv'&&LIVE.on?infoTile('tv','Hisense TV',`via Alexa<span class="tvb" style="justify-content:flex-start;margin-top:6px"><button class="btn small" data-tv="off">Off</button><button class="btn small" data-tv="on">On</button></span>`):infoTile(S[k].icon,S[k].name,S[k].available===false?(LIVE.on?'Not paired yet':'Unresponsive'):S[k].icon==='echo'?(echoInfo(S[k])||(S[k].state?S[k].state[0].toUpperCase()+S[k].state.slice(1):'Idle')):S[k].on?'On':'Off',S[k].available===false?'off-line':S[k].present?'on':'')),
+      ...(S[`sensor.${r.id}_thermometer`]?[thermoTile(S[`sensor.${r.id}_thermometer`],r.id+'_thermo')]:[]),
+      ...(r.id==='studio'?[infoTile('lux','Light level',`${S['sensor.studio_illuminance'].lux} lx · ${luxLabel(S['sensor.studio_illuminance'].lux)}`,'','studio_lux'),infoTile(['Cleaning','Returning'].includes(S[VAC].status)?lottieSlot(robotAnim(),40,'robot'):'robot','Roborock Q5 Pro',`${vacStatus()} · ${S[VAC].battery}%`,S[VAC].status==='Cleaning'?'on':'')]:[]),
+      ...mp.map(k=>k==='media_player.living_room_tv'&&LIVE.on?infoTile('tv','Hisense TV',`via Alexa<span class="tvb" style="justify-content:flex-start;margin-top:6px"><button class="btn small" data-tv="off">Off</button><button class="btn small" data-tv="on">On</button></span>`):infoTile(S[k].icon,S[k].name,S[k].available===false?(LIVE.on?'Not paired yet':'Unresponsive'):S[k].icon==='echo'?(echoInfo(S[k])||(S[k].state?S[k].state[0].toUpperCase()+S[k].state.slice(1):'Idle')):S[k].on?'On':'Off',S[k].available===false?'off-line':S[k].present?'on':'',S[k].icon==='echo'&&S[k].available!==false?k.slice(13):undefined)),
       ...sen.map(sensorTile),
       ...ev.map(k=>infoTile('remote',S[k].name,LIVE.on?(S[k].available?S[k].last[0].toUpperCase()+S[k].last.slice(1):'Not paired yet'):`Last: ${S[k].last}`,S[k].available===false?'off-line':'')),
     ];
@@ -664,6 +760,7 @@ function climateCard(id){
    <div class="trow"><div class="temp">${c.cur.toFixed(1)}<sup>°C</sup></div>${run?`<div class="cring" data-until="${c.until}" style="--p:${Math.min(100,left/.3)}"><div><span><b>${left}</b><small>min</small></span></div></div>`:''}</div>
    ${sub?`<div class="csub" role="status">${sub}</div>`:''}
    <div class="kv"><span>${ic('drop')}Humidity</span><b>${c.hum}%</b></div>
+   <button class="btn small" data-hist="${id.slice(8)}" style="margin-top:10px">History</button>
    ${c.others?.length?`<div class="oth" aria-label="Other thermometers">${c.others.map(([n,v])=>`<span class="pill">${n} ${v.toFixed(1)}°</span>`).join('')}</div>`:''}
    <div class="stepper"><button data-step="${id}" data-d="-0.5" aria-label="Lower ${c.name} target">−</button>
    <output>Target ${c.target.toFixed(1)}°</output><button data-step="${id}" data-d="0.5" aria-label="Raise ${c.name} target">+</button></div>
@@ -678,7 +775,7 @@ function aqCard(){const a=S['sensor.air_quality_monitor'];
     <p class="note" style="margin:12px 0">IKEA monitor in the Living room. Once it is back online it reports PM2.5, CO₂/VOC, temperature and humidity here.</p>
     <div class="kv"><span>${ic('leaf')}PM2.5</span><b>— µg/m³</b></div><div class="kv"><span>${ic('leaf')}Air quality</span><b>—</b></div><div class="kv"><span>${ic('drop')}Humidity</span><b>—</b></div></div>`;
   return `<div class="card glass"><h3>Air quality · Living room<span class="pill ${/poor/.test(a.rating)?'warn':'ok'}">${a.rating||'—'}</span></h3>
-    <div class="temp">${a.co2??'—'}<sup>ppm CO₂</sup></div>
+    <div class="temp">${a.co2??'—'}<sup>ppm CO₂</sup></div><button class="btn small" data-hist="aq" style="margin:2px 0 6px">History</button>
     <div class="kv"><span>${ic('leaf')}PM2.5</span><b>${a.pm25??'—'} µg/m³</b></div><div class="kv"><span>${ic('drop')}Humidity</span><b>${a.hum!=null?Math.round(a.hum):'—'}%</b></div>
     <div class="kv"><span>${ic('climate')}Temperature</span><b>${a.temp!=null?a.temp.toFixed(1):'—'}°</b></div>${/poor/.test(a.rating)?'<p class="note" style="margin:8px 0 0">Open a window for a few minutes.</p>':''}</div>`}
 function vClimate(){
@@ -877,6 +974,7 @@ function drawSheet(){
   if(sheetId==='vacation')return drawVac();
   if(sheetId==='music')return drawMusicSheet();
   if(sheetId.startsWith('auto:'))return drawAuto();
+  if(sheetId.startsWith('hist:'))return drawHist();
   const e=S[sheetId],g=glow(e);
   document.getElementById('sheet').style.setProperty('--glow',g||'var(--on-warm)');
   document.getElementById('sheet').innerHTML=`
@@ -893,7 +991,8 @@ function drawSheet(){
    ${e.scenes?`<div class="lbl">Scene</div><select id="sh-scene" aria-label="Scene" style="width:100%;padding:10px 12px;border-radius:14px;border:1px solid var(--hair);background:var(--hair);color:inherit;font:inherit">${e.scenes.map(o=>`<option ${o===e.scene?'selected':''}>${esc(o)}</option>`).join('')}</select>`:''}
    ${e.dream!=null?`<div class="kv" style="margin-top:12px"><span>Sync with TV (DreamView)</span><button class="sw" data-dream aria-pressed="${e.dream}" aria-label="DreamView TV sync"></button></div>`:''}
    ${LIVE.on?'':`<p class="note" style="margin:14px 0 0">HA call: <code>light.turn_on</code> with <code>brightness_pct</code>${e.kelvin?', <code>color_temp_kelvin</code>':''}${e.rgb?', <code>rgb_color</code>':''}.</p>`}
-   <div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn primary" data-close>Done</button></div>`;
+   ${LIVE.on?`<div class="lbl">Last 24 hours</div>${hDev(sheetId)}`:''}
+   <div class="row" style="margin-top:16px;justify-content:flex-end">${haBtn(sheetId)}<button class="btn primary" data-close>Done</button></div>`;
 }
 
 /* ---------- Roborock simulation (previews live position) ---------- */
@@ -1462,6 +1561,10 @@ document.addEventListener('click',e=>{
   else if('vdgo' in d){startVacation()}
   else if('vacEnd' in d){endVac()}
   else if('vacNow' in d){S[VAC_ID].start=today();activateVac();update()}
+  else if(d.hist){openHist(d.hist,b)}
+  else if(d.hs!=null){H_.i=+d.hs;H_.pts=null;drawSheet()}
+  else if(d.hr){H_.rg=d.hr;H_.pts=null;drawSheet()}
+  else if(d.hopen){openHA(d.hopen)}
   else if(d.toggle){if(blocked(d.toggle))return keepOff();S[d.toggle].on=!S[d.toggle].on;update()}
   else if(d.adjust){if(blocked(d.adjust))return keepOff();openSheet(d.adjust,b)}
   else if('close' in d){closeSheet()}
@@ -1517,7 +1620,7 @@ const DEMO=(()=>{
   let ha=null;try{if(parent!==window)ha=parent.document.querySelector('home-assistant')}catch(e){}
   const el=document.getElementById('demo-data');if(ha||!el)return null;
   const D=JSON.parse(el.textContent.replace(/^\/\*DEMO-START\*\/|\/\*DEMO-END\*\/$/g,'')),states={},AUTO=D.automations;D.states.forEach(s=>states[s.entity_id]=s);
-  const hass={states,entities:{},user:{is_admin:true},callWS:()=>Promise.resolve([])};
+  const hass={states,entities:{},user:{is_admin:true}};
   const set=(id,state,attrs)=>{const o=hass.states[id];if(!o)return;const now=new Date().toISOString(); // new objects so LIVE.pull sees the change
     hass.states={...hass.states,[id]:{...o,state:state??o.state,attributes:{...o.attributes,...attrs},last_changed:state!=null&&state!==o.state?now:o.last_changed,last_updated:now}}};
   hass.callService=(dom,svc,data)=>{const ids=[].concat(data.entity_id||[]),dm=dom;
@@ -1534,13 +1637,26 @@ const DEMO=(()=>{
       else if(dom==='media_player'){if(svc==='volume_set')set(id,null,{volume_level:data.volume_level});if(svc==='volume_mute')set(id,null,{is_volume_muted:data.is_volume_muted})}
       else if(dom==='input_datetime'&&svc==='set_datetime')set(id,data.time||data.datetime||data.date)});
     return Promise.resolve()};
+  // plausible per-kind curves for the history sheets (hours drive the daily rhythm; w is a slow wobble)
+  const cv=(id,t)=>{const d=new Date(t),h=d.getHours()+d.getMinutes()/60,w=Math.sin(t/7.3e6)*.5+Math.sin(t/2.1e6)*.3,r=Math.sin((h-14)/24*2*Math.PI),dd=Math.sin(Math.floor(t/864e5)*1.7); // dd: day-to-day drift for the 30 d view
+    if(/^(binary_sensor)/.test(id))return Math.floor(t/6e5)*7919%29<(/door/.test(id)?1:2)?1:0;
+    if(/^(light|switch)/.test(id))return h>=18&&h<23?1:0;
+    return /co2_intensity/.test(id)?260+90*r+40*w:/co2/.test(id)?Math.min(1300,Math.max(450,875+400*r+90*w+130*dd)):/pm25/.test(id)?Math.max(1,7+4*r+4*w):/humidity/.test(id)?52+9*r+3*w+3*dd:/temperature/.test(id)?20.5+2*r+w+dd:
+      /illuminance/.test(id)?(h>6&&h<18?650*Math.sin((h-6)/12*Math.PI)+60*w:3):/heating_power/.test(id)?(h>6&&h<8.5||h>17&&h<22?Math.round(55+30*w):0):18+r};
   hass.callApi=(m,path,body)=>{
     if(path.startsWith('config/automation/config/')){const id=path.split('/').pop();
       if(m==='GET')return AUTO[id]?Promise.resolve(JSON.parse(JSON.stringify(AUTO[id]))):Promise.reject({message:'not found'});
       if(m==='DELETE')delete AUTO[id];else AUTO[id]={id,...body};return Promise.resolve({result:'ok'})}
-    if(path.startsWith('history/period/')){const ids=decodeURIComponent((path.split('filter_entity_id=')[1]||'').split('&')[0]).split(',').filter(Boolean),now=Date.now();
-      return Promise.resolve(ids.map(id=>Array.from({length:24},(_,i)=>({...(i?{}:{entity_id:id}),state:String(18+Math.sin(i/3)*2+(id.includes('co2')?1500:0)),last_changed:new Date(now-864e5+i*36e5).toISOString()}))))}
+    if(path.startsWith('history/period/')){const q=new URLSearchParams(path.split('?')[1]),ids=(q.get('filter_entity_id')||'').split(',').filter(Boolean),t0=new Date(path.slice(15).split('?')[0]).getTime(),t1=q.get('end_time')?new Date(q.get('end_time')).getTime():Date.now();
+      return Promise.resolve(ids.map(id=>{const rows=[],bin=/^(binary_sensor|light|switch)\./.test(id);let last=null;
+        for(let t=t0;t<=t1;t+=6e5){const v=cv(id,t),s=bin?(v?'on':'off'):v.toFixed(1);if(!bin||s!==last||!rows.length){rows.push({...(rows.length?{}:{entity_id:id}),state:s,last_changed:new Date(t).toISOString()});last=s}}
+        return rows}))}
     return Promise.resolve({})};
+  hass.callWS=(m)=>{if(m.type!=='recorder/statistics_during_period')return Promise.resolve([]);const out={};
+    for(const id of m.statistic_ids){if(/^(binary_sensor|light|switch)\./.test(id))continue; // like the real recorder: ids without statistics are absent
+      out[id]=[];for(let d=new Date(m.start_time).setHours(0,0,0,0);d<Date.now();d=new Date(d).setDate(new Date(d).getDate()+1)){const v=Array.from({length:24},(_,h)=>cv(id,d+h*36e5));
+        out[id].push({start:d,end:d+864e5,mean:v.reduce((a,b)=>a+b)/24,min:Math.min(...v),max:Math.max(...v)})}}
+    return Promise.resolve(out)};
   return {host:{hass},date:D.date};
 })();
 const LIVE=(()=>{
