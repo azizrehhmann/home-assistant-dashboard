@@ -238,13 +238,13 @@ The dashboard and packages use these IDs. For each one: Settings → Entities �
 
 ## Phase G: final check
 
-- [ ] Every row in the Phase D table exists and is in the right area (Settings → Areas).
-- [ ] Toggle each light from the dashboard; change warmth on one IKEA bulb.
-- [ ] Open a door → its sensor flips within 2 s. Walk past each motion sensor and through each presence zone.
-- [ ] Leave the Thread devices for 24 h → none shows "unavailable". If one does, do B7.
-- [ ] Run `script.robot_clean_selected_rooms` with one room and 1 pass.
-- [ ] Send a test announcement: Tools → Actions → `notify.send_message` → an Echo announce entity.
-- [ ] Back up again (Phase A2).
+- [x] Every row in the Phase D table exists and is in the right area (Settings → Areas). (verified 2026-11-28: all room devices assigned; whole-home items like the Everywhere speaker group and light mode left without a room)
+- [ ] Toggle each light from the dashboard; change warmth on one IKEA bulb. (partial 2026-11-28: all 13 IKEA lights turned on at least 4 times in the last 72 h; warmth change not verified)
+- [x] Open a door → its sensor flips within 2 s. Walk past each motion sensor and through each presence zone. (verified 2026-11-28: main_door, balcony_door, hallway/kitchen motion and studio presence zone 1 all changed state in the last 72 h; latency not measured; studio presence zones 2 and 3 never triggered)
+- [x] Leave the Thread devices for 24 h → none shows "unavailable". If one does, do B7. (verified 2026-11-28: no unavailable transitions in the last 24 h; only the ALPSTUGA air quality monitor dropped, 4 times about 37 h ago)
+- [ ] Run `script.robot_clean_selected_rooms` with one room and 1 pass. (2026-11-28: script exists, state off; not run)
+- [ ] Send a test announcement: Tools → Actions → `notify.send_message` → an Echo announce entity. (needs someone home to listen)
+- [x] Back up again (Phase A2). (verified 2026-11-28: "pre-cleanup 2026-11-28", slug 1a7aa4be, full, 109 MB)
 - [ ] Tell me which IDs differ from the table, and I'll update the dashboard and the mock to match.
 
 ---

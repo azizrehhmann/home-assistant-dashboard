@@ -916,7 +916,7 @@ function vAppliances(){
   return head('Appliances','Kitchen, Studio and Living room')+`
    <div class="grid">${vacuumPanel()}${washerCard(200)}
    <div class="card glass"><h3>Rice cooker plug<span class="pill ${rc.on?'warn':''}">${rc.on?'On':'Off'}</span></h3>
-     <p class="note" style="margin:10px 0">Kitchen · Wi-Fi plug. Auto-off after 90 minutes is planned as an automation.</p>
+     <p class="note" style="margin:10px 0">Kitchen · Wi-Fi plug. Switches off by itself after 60 minutes</p>
      <button class="btn ${rc.on?'':'primary'}" data-toggle="switch.rice_cooker">${rc.on?'Turn off':'Turn on'}</button></div>
    ${fanCard()}
    <div class="card glass"><h3>Living room media</h3>
@@ -1517,7 +1517,7 @@ function muPlay(phrase,T){if(!T.ok)return toast(T.hint);muSend(T.dev,phrase+T.su
 // a just-written volume/mute is held for 3 s so the 1 s poll can't snap the slider back before Home Assistant reports it
 const muHold=(ent,o)=>{MU.vp[ent]={...MU.vp[ent],...o,until:Date.now()+3000}};
 const muHeld=(ent,k,v)=>{const p=MU.vp[ent];return p&&Date.now()<p.until&&p[k]!=null?p[k]:v};
-function muVolSet(room,v){const ent=muRoom(room)[2];muHold(ent,{v});if(LIVE.on)LIVE.call('media_player','volume_set',{entity_id:ent,volume_level:v/100});else S[ent].vol=v}
+function muVolSet(room,v){const ents=room==='all'?MU_ROOMS.map(r=>r[2]):[muRoom(room)[2]];ents.forEach(e=>muHold(e,{v}));if(LIVE.on)LIVE.call('media_player','volume_set',{entity_id:ents,volume_level:v/100});else ents.forEach(e=>{S[e].vol=v})}
 const muVol=(ent)=>muHeld(ent,'v',LIVE.on?Math.round((LIVE.H().states[ent]?.attributes?.volume_level??.3)*100):(S[ent].vol??30));
 const muMuted=(ent)=>muHeld(ent,'m',LIVE.on?!!LIVE.H().states[ent]?.attributes?.is_volume_muted:!!S[ent].muted);
 function muMute(ent){const m=!muMuted(ent);muHold(ent,{m});if(LIVE.on)LIVE.call('media_player','volume_mute',{entity_id:ent,is_volume_muted:m});else S[ent].muted=m;render()}
@@ -1560,7 +1560,8 @@ function vMusic(){
   const T=muTarget(),N=muNow(T),a=N.s?.attributes||{},pl=N.s?.state==='playing';
   const room=([id,n])=>`<button class="mu-room" data-murm="${id}" aria-pressed="${MU.rooms.includes(id)}">${ic('echo')}<span>${n}</span></button>`;
   const seg=(items,cur,key,label)=>`<div class="seg full" role="group" aria-label="${label}">${items.map(([k,n])=>`<button data-${key}="${k}" aria-pressed="${cur===k}">${n}</button>`).join('')}</div>`;
-  const vol=MU.rooms.map(muRoom).map(([id,n,ent])=>`<div class="mu-vol"><span>${n}</span><input type="range" min="0" max="100" value="${muVol(ent)}" data-muvol="${id}" aria-label="${n} volume"><b id="muV-${id}">${muVol(ent)}%</b></div>`).join('');
+  const avg=Math.round(MU_ROOMS.reduce((t,r)=>t+muVol(r[2]),0)/MU_ROOMS.length),
+  vol=`<div class="mu-vol"><span>All Echo Dots</span><input type="range" min="0" max="100" value="${avg}" data-muvol="all" aria-label="All Echo Dots volume"><b id="muV-all">${avg}%</b></div>`+MU.rooms.map(muRoom).map(([id,n,ent])=>`<div class="mu-vol"><span>${n}</span><input type="range" min="0" max="100" value="${muVol(ent)}" data-muvol="${id}" aria-label="${n} volume"><b id="muV-${id}">${muVol(ent)}%</b></div>`).join('');
   const cover=N.on&&a.entity_picture?`<img class="mu-cover" src="${esc(a.entity_picture)}" alt="">`:`<div class="mu-cover">${ic('music')}</div>`;
   const nowTxt=N.on?`<b>${esc(a.media_title||'Playing')}</b><small>${esc([a.media_artist,a.media_album_name].filter(Boolean).join(' · '))}</small>${N.where?`<small>in ${esc(N.where)}</small>`:''}`:`<b>Nothing playing</b><small>Pick rooms and ask for something below</small>`;
   const conn=muReal()?MU.cid:true, wait=muReal()&&MU.cid===undefined;
@@ -1575,7 +1576,7 @@ function vMusic(){
    <div class="card glass"><h3>Now playing${N.on?`<span class="pill ${pl?'ok':''}">${pl?'Playing':'Paused'}</span>`:`<span class="pill">Idle</span>`}</h3>
      <div class="mu-now" style="margin-top:12px">${cover}<div class="mu-txt">${nowTxt}</div></div>
      <div class="mu-ctrl"><button class="btn" data-mu="prev" aria-label="Previous">${ic('mprev')}</button><button class="btn primary" data-mu="pause" aria-label="${pl?'Pause':'Play'}">${ic(pl?'mpause':'mplay')}</button><button class="btn" data-mu="next" aria-label="Next" ${muReal()&&!muNext(N.s)?'disabled':''}>${ic('mnext')}</button><button class="btn" data-mu="stop" aria-label="Stop">${ic('mstop')}</button></div>
-     <div class="lbl">Volume</div>${vol||'<p class="note">Pick a room first.</p>'}</div>
+     <div class="lbl">Volume</div>${vol}</div>
    <div class="card glass"><h3>Where<span class="pill ${T.ok?'ok':'warn'}">${T.ok?esc(T.label):'Not ready'}</span></h3>
      <div class="mu-rooms">${MU_ROOMS.map(room).join('')}</div>
      <div class="row"><button class="btn small" data-mu="everywhere">${ic('echo')}Everywhere</button></div>
@@ -1670,7 +1671,7 @@ document.addEventListener('input',e=>{
   const t=e.target;
   if(t.id==='muQ'){MU.q=t.value;return}
   if(t.id==='muS'){MU.sq=t.value;return}
-  if(t.dataset.muvol){const v=document.getElementById('muV-'+t.dataset.muvol);if(v)v.textContent=t.value+'%';return}
+  if(t.dataset.muvol){const all=t.dataset.muvol==='all';document.querySelectorAll(all?'[data-muvol]':`[data-muvol="${t.dataset.muvol}"]`).forEach(i=>{i.value=t.value;const v=document.getElementById('muV-'+i.dataset.muvol);if(v)v.textContent=t.value+'%'});return}
   if(t.dataset.bri){S[t.dataset.bri].bri=+t.value;const st=t.closest('.tile').querySelector('.st');const en=S[t.dataset.bri];st.textContent=`${en.bri}%${en.kelvin?` · ${en.kelvin} K`:''}`;return}
   if(t.id==='lk-accent'){LOOK.accent=t.value;applyLook();return}
   if(t.id==='lk-round'){LOOK.round=+t.value;document.getElementById('lkRV').textContent=t.value;applyLook();return}

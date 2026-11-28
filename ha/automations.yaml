@@ -295,12 +295,12 @@
       brightness_pct: '{{ state_attr(''sensor.light_mode'', ''brightness_pct'') }}'
       color_temp_kelvin: '{{ state_attr(''sensor.light_mode'', ''kelvin'') }}'
 - id: rice_cooker_timeout
-  alias: Kitchen · rice cooker off after 90 min
+  alias: Kitchen · rice cooker off after 60 min
   triggers:
   - trigger: state
     entity_id: switch.rice_cooker
     to: 'on'
-    for: 01:30:00
+    for: 01:00:00
   actions:
   - action: switch.turn_off
     target:
@@ -308,7 +308,7 @@
   - action: notify.mobile_app_azizs_iphone
     data:
       title: Rice cooker
-      message: Switched off after 90 minutes.
+      message: Switched off after 60 minutes.
 - id: balcony_door_heating
   alias: Living room · heating paused while the balcony door is open
   mode: single
@@ -548,9 +548,8 @@
       - studio
       sequence:
       - action: tado_x.set_climate_timer
-        target:
-          entity_id: climate.{{ repeat.item }}
         data:
+          entity_id: climate.{{ repeat.item }}
           temperature: 17
           duration: '{{ mins }}'
       - action: input_datetime.set_datetime

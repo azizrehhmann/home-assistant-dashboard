@@ -25,10 +25,10 @@ views:
                 · robot every {{ states('input_number.vacation_robot_every_days') | int }} days at {{ states('input_datetime.vacation_robot_time')[:5] }}
           - type: markdown
             content: >-
-              ## {% set h = now().hour %}{{ 'Good night' if h < 5 else 'Good morning' if h < 12 else 'Good afternoon' if h < 18 else 'Good evening' }}, Aziz
+              ## Home
 
               {{ now().strftime('%A %d %B') }} ·
-              {{ states('light') | selectattr('state','eq','on') | list | count }} lights on ·
+              {{ states.light | selectattr('state','eq','on') | list | count }} lights on ·
               {{ 'Balcony door open' if is_state('binary_sensor.balcony_door','on') else 'Doors closed' }}
           - type: heading
             heading: Scenes

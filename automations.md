@@ -19,7 +19,7 @@
 | Washer done | Push to the iPhone; 08:00–22:00 and someone home → the Echo in the occupied room announces it |
 | Everyone left | Nobody home 5 min → all lights + rice cooker off, push if a door is open |
 | Welcome light | First person home after dark, living room off → living room 70 % at 2700 K |
-| Rice cooker | Off after 90 min, plus a push |
+| Rice cooker | Off after 60 min, plus a push |
 | Balcony door | Open 2 min → living-room heating off; closed → back to the tado schedule (only if this automation turned it off) |
 
 **Remotes** (`remotes.yaml`): each scroll wheel has 3 channels: **1** whole room, **2** ceiling, **3** lamp. **Press** = on/off, **turn** = dim (5 % per click), **double-press** = room scene (Living → Movie, Studio → Focus, Bedroom → Night). Bedroom dual button: top = bedside lamps (hold = 10 % warm), bottom = Night. If turning feels reversed or the dual button's top/bottom are swapped, flip the marked `shortcut:` lines.
@@ -36,7 +36,7 @@ Everything below is the original catalogue, kept for reference. Tier 1 automatio
 | 4 | **Kitchen motion light** | Motion → ceiling on at the time-of-day level (`sensor.light_mode`), only if it is off and dark. Off 3 min after the motion stops. | MYGGSPRAY, kitchen ceiling | Wave at the sensor at 23:30 |
 | 5 | **Washer done** | The "program finished" event → an Echo **in the room you're in** announces it (presence decides Studio / Kitchen / Living room). Only 08:00–22:00 and when you're home. A phone push always goes out. | Home Connect, Meross, MYGGSPRAY, Echo Dots | Run a short program |
 | 6 | **Balcony door → heating pause** | Door open 2 min → living-room tado off. Closed → heating back on. | Door sensor, tado (HomeKit) | Open the balcony door for 2 min |
-| 7 | **Rice-cooker timeout** | Plug on for 90 min → off, plus a push. A safety net for forgotten cookers. | Wi-Fi plug | Set `for:` to 1 min temporarily |
+| 7 | **Rice-cooker timeout** | Plug on for 60 min → off, plus a push. A safety net for forgotten cookers. | Wi-Fi plug | Set `for:` to 1 min temporarily |
 | 8 | **Leaving home** | Phone leaves home for 5 min → all lights off, plug off, a push **if a door is open**, and the robot cleans your selected rooms (if it hasn't run in 20 h). | Phone, lights, doors, Roborock | Tools → States: set `person.aziz` to `not_home` |
 | 9 | **Welcome home** | Main door opens within 10 min of you arriving, after dark, with every light off → living room 70% at 2700 K, and the robot docks if it's still cleaning. | Door sensor, phone, ceiling lights, Roborock | Arrive after sunset |
 | 10 | **Weekday wake-up light** | 20 min before your wake time, both bedside lamps rise from 1% at 2200 K to 80% at 3500 K. At wake time the bathroom heats to 22° and the Echo says "good morning" (your Alexa briefing). On/off and time are on the dashboard. | Bedside lamp, tado, Echo | Set the wake time 21 min ahead |
