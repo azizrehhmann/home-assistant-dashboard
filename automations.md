@@ -138,7 +138,7 @@ Helper: `input_boolean.azan_enabled` ("Azan").
 
 | Name (id) | Trigger | Conditions | What happens |
 |---|---|---|---|
-| **Prayer · azan on the living-room Echo** (`azan_prayer_times`) | Time of the Dhuhr, Asr, Maghrib or Isha sensor (`sensor.islamic_prayer_times_<prayer>_prayer`). No Fajr. | Azan on; vacation mode off; `zone.home` above 0 (someone home); Isha skipped after 22:30 | `alexa_devices.send_text_command` "play my playlist Azan on Spotify" on the living-room Echo Dot. Waits up to 30 s for `media_player.echo_living_room` to play and notes the track title, waits the track's `media_duration` + 5 s (300 s if unknown, max 420 s), then pauses the Echo if it is still playing that same title, so Spotify autoplay can't carry on. Mode `single`, extra triggers are dropped silently. |
+| **Prayer · azan on the living-room Echo** (`azan_prayer_times`) | Time of the Dhuhr, Asr, Maghrib or Isha sensor (`sensor.islamic_prayer_times_<prayer>_prayer`). No Fajr. | Azan on; vacation mode off; `zone.home` above 0 (someone home); Isha skipped after 22:30 | `notify.send_message` to `notify.echo_living_room_speak` with SSML `<speak><audio src="..."/></speak>`: a local MP3 hosted on HA (`/config/www/azan/`) and fetched through the Nabu Casa URL, which is stored in `secrets.yaml` as `azan_url`. No streaming service, no Spotify. Mode `single`, extra triggers are dropped silently. |
 
 ---
 
