@@ -223,7 +223,7 @@ views:
           - type: tile
             entity: climate.bedroom
           - type: tile
-            entity: input_boolean.wake_light_enabled
+            entity: input_boolean.wake_up_enabled
             features_position: bottom
             features: [{type: toggle}]
           - type: tile
