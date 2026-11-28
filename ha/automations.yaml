@@ -282,9 +282,9 @@
     then:
     - action: notify.send_message
       target:
-        entity_id: '{% if is_state(''binary_sensor.studio_presence'',''on'') %}notify.echo_studio_announce
+        entity_id: '{% if is_state(''binary_sensor.studio_presence'',''on'') %}notify.echo_studio_speak
           {% elif is_state(''binary_sensor.kitchen_motion'',''on'') or is_state(''binary_sensor.echo_kitchen_presence'',''on'')
-          %}notify.echo_kitchen_announce {% else %}notify.echo_living_room_announce{%
+          %}notify.echo_kitchen_speak {% else %}notify.echo_living_room_speak{%
           endif %}
 
           '
@@ -339,7 +339,8 @@
       name: "{{ 'Aziz' if trigger.id == 'aziz' else 'Hatice' }}"
       other: "{{ 'person.wifey' if trigger.id == 'aziz' else 'person.muhammad_aziz_ur_rehman' }}"
       was_empty: "{{ not is_state(other, 'home') }}"
-      spoken: "{{ 'Aziz' if trigger.id == 'aziz' else 'Hateejeh' }}"  # phonetic: Alexa says Hatice wrongly
+      spoken: >-
+        {{ 'As-salaamu alaykum, Aziz.' if trigger.id == 'aziz' else '<speak>As-salaamu alaykum, <lang xml:lang="tr-TR">Hatice</lang>.</speak>' }}
   - wait_for_trigger:
     - trigger: state
       entity_id: binary_sensor.main_door
@@ -371,9 +372,9 @@
     then:
     - action: notify.send_message
       target:
-        entity_id: notify.echo_kitchen_announce
+        entity_id: notify.echo_kitchen_speak
       data:
-        message: 'As-salaamu alaykum, {{ spoken }}'
+        message: '{{ spoken }}'
 - id: rice_cooker_timeout
   alias: Kitchen · rice cooker off after 60 min
   triggers:
@@ -598,9 +599,9 @@
         then:
         - action: notify.send_message
           target:
-            entity_id: '{% if is_state(''binary_sensor.studio_presence'',''on'') %}notify.echo_studio_announce
+            entity_id: '{% if is_state(''binary_sensor.studio_presence'',''on'') %}notify.echo_studio_speak
               {% elif is_state(''binary_sensor.kitchen_motion'',''on'') or is_state(''binary_sensor.echo_kitchen_presence'',''on'')
-              %}notify.echo_kitchen_announce {% else %}notify.echo_living_room_announce{%
+              %}notify.echo_kitchen_speak {% else %}notify.echo_living_room_speak{%
               endif %}
 
               '
@@ -908,9 +909,9 @@
     then:
     - action: notify.send_message
       target:
-        entity_id: '{% if is_state(''binary_sensor.studio_presence'',''on'') %}notify.echo_studio_announce
+        entity_id: '{% if is_state(''binary_sensor.studio_presence'',''on'') %}notify.echo_studio_speak
           {% elif is_state(''binary_sensor.kitchen_motion'',''on'') or is_state(''binary_sensor.echo_kitchen_presence'',''on'')
-          %}notify.echo_kitchen_announce {% else %}notify.echo_living_room_announce{%
+          %}notify.echo_kitchen_speak {% else %}notify.echo_living_room_speak{%
           endif %}
 
           '
@@ -958,7 +959,7 @@
         {%- endif %}
   - action: notify.send_message
     target:
-      entity_id: notify.echo_kitchen_announce
+      entity_id: notify.echo_kitchen_speak
     data:
       message: '{{ msg }}'
   mode: single

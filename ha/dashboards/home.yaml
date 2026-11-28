@@ -376,21 +376,21 @@ views:
             tap_action:
               action: perform-action
               perform_action: notify.send_message
-              target: {entity_id: notify.kitchen_echo_dot_announce}
+              target: {entity_id: notify.echo_kitchen_speak}
               data: {message: Test announcement from Home Assistant}
           - <<: *announce
             name: Test living room
             tap_action:
               action: perform-action
               perform_action: notify.send_message
-              target: {entity_id: notify.living_room_echo_dot_announce}
+              target: {entity_id: notify.echo_living_room_speak}
               data: {message: Test announcement from Home Assistant}
           - <<: *announce
             name: Test studio
             tap_action:
               action: perform-action
               perform_action: notify.send_message
-              target: {entity_id: notify.studio_echo_dot_announce}
+              target: {entity_id: notify.echo_studio_speak}
               data: {message: Test announcement from Home Assistant}
 
   # ---------------------------------------------------------------- SECURITY
