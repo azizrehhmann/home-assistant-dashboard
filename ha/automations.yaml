@@ -3,7 +3,7 @@
   triggers:
   - trigger: sun
     event: sunset
-    offset: -00:15:00
+    offset: -00:30:00
   conditions:
   - condition: state
     entity_id: input_boolean.vacation_mode
@@ -17,25 +17,50 @@
       entity_id: light.living_room_lamp
   - action: light.turn_on
     target:
-      entity_id: light.studio_lamp
+      entity_id:
+      - light.studio_lamp
+      - light.bedside_lamps
     data:
       brightness_pct: '{{ state_attr(''sensor.light_mode'', ''brightness_pct'') }}'
       color_temp_kelvin: '{{ state_attr(''sensor.light_mode'', ''kelvin'') }}'
 - id: wake_up_light
   alias: Schedule · weekday wake-up light
+  description: 20 minutes before the wake-up time (weekday time Mon-Fri, weekend time
+    Sat-Sun) the bedside lamps fade up slowly from a dim warm glow; after the fade the
+    bathroom heats to 22 C for an hour.
   triggers:
   - trigger: time
     at:
       entity_id: input_datetime.wake_time
       offset: -00:20:00
+    id: weekday
+  - trigger: time
+    at:
+      entity_id: input_datetime.wake_time_weekend
+      offset: -00:20:00
+    id: weekend
   conditions:
-  - condition: time
-    weekday:
-    - mon
-    - tue
-    - wed
-    - thu
-    - fri
+  - condition: or
+    conditions:
+    - condition: and
+      conditions:
+      - condition: trigger
+        id: weekday
+      - condition: time
+        weekday:
+        - mon
+        - tue
+        - wed
+        - thu
+        - fri
+    - condition: and
+      conditions:
+      - condition: trigger
+        id: weekend
+      - condition: time
+        weekday:
+        - sat
+        - sun
   - condition: state
     entity_id: input_boolean.wake_up_enabled
     state: 'on'
@@ -63,6 +88,12 @@
       entity_id: climate.bathroom
       temperature: 22
       duration: 60
+  - action: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.climate_timer_bathroom
+    data:
+      datetime: '{{ (now() + timedelta(minutes=60)).strftime(''%Y-%m-%d %H:%M:%S'')
+        }}'
 - id: balcony_lights_on
   alias: Schedule · balcony lights on at sunset
   triggers:
@@ -237,6 +268,10 @@
     data:
       title: Washer
       message: The washing machine is done.
+  - action: notify.mobile_app_iphone_wifey
+    data:
+      title: Washer
+      message: The washing machine is done.
   - if:
     - condition: time
       after: 08:00:00
@@ -258,7 +293,8 @@
 - id: leave_home
   alias: Presence · everyone left
   description: 'Five minutes after everyone left: all lights and the rice cooker off.
-    Door warnings come from the leaving check.'
+    Door warnings come from the leaving check. Also turns the TV off through the
+    living-room Echo (Alexa text command; a failure never blocks the rest).'
   triggers:
   - trigger: state
     entity_id: zone.home
@@ -271,29 +307,73 @@
   - action: switch.turn_off
     target:
       entity_id: switch.rice_cooker
+  - action: alexa_devices.send_text_command
+    continue_on_error: true
+    data:
+      device_id: 5c1cc20b821f547aa2b140387426c229
+      text_command: turn off the TV
 - id: arrive_home
-  alias: Presence · welcome light after dark
+  alias: Presence · welcome home
+  description: 'When Aziz or Hatice arrives, wait for the main door to open (10 min
+    at most). If the home was empty and it is dark: living-room lamp, hallway light
+    and bedside lamps on at the time-of-day values. Between 07:00 and 23:00 the kitchen
+    Echo greets them by name.'
+  mode: queued
   triggers:
   - trigger: state
-    entity_id: zone.home
-    from: '0'
+    entity_id: person.muhammad_aziz_ur_rehman
+    to: home
+    not_from: [unknown, unavailable]
+    id: aziz
+  - trigger: state
+    entity_id: person.wifey
+    to: home
+    not_from: [unknown, unavailable]
+    id: wifey
   conditions:
   - condition: state
     entity_id: input_boolean.vacation_mode
     state: 'off'
-  - condition: state
-    entity_id: sun.sun
-    state: below_horizon
-  - condition: state
-    entity_id: light.living_room_lights
-    state: 'off'
   actions:
-  - action: light.turn_on
-    target:
-      entity_id: light.living_room_lights
-    data:
-      brightness_pct: '{{ state_attr(''sensor.light_mode'', ''brightness_pct'') }}'
-      color_temp_kelvin: '{{ state_attr(''sensor.light_mode'', ''kelvin'') }}'
+  - variables:
+      name: "{{ 'Aziz' if trigger.id == 'aziz' else 'Hatice' }}"
+      other: "{{ 'person.wifey' if trigger.id == 'aziz' else 'person.muhammad_aziz_ur_rehman' }}"
+      was_empty: "{{ not is_state(other, 'home') }}"
+      spoken: "{{ 'Aziz' if trigger.id == 'aziz' else 'Hateejeh' }}"  # phonetic: Alexa says Hatice wrongly
+  - wait_for_trigger:
+    - trigger: state
+      entity_id: binary_sensor.main_door
+      to: 'on'
+    timeout: 00:10:00
+    continue_on_timeout: true
+  - if:
+    - condition: state
+      entity_id: sun.sun
+      state: below_horizon
+    - condition: template
+      value_template: '{{ was_empty }}'
+    then:
+    - action: light.turn_on
+      target:
+        entity_id: light.living_room_lamp
+    - action: light.turn_on
+      target:
+        entity_id:
+        - light.hallway_light
+        - light.bedside_lamps
+      data:
+        brightness_pct: '{{ state_attr(''sensor.light_mode'', ''brightness_pct'') }}'
+        color_temp_kelvin: '{{ state_attr(''sensor.light_mode'', ''kelvin'') }}'
+  - if:
+    - condition: time
+      after: '07:00:00'
+      before: '23:00:00'
+    then:
+    - action: notify.send_message
+      target:
+        entity_id: notify.echo_kitchen_announce
+      data:
+        message: 'As-salaamu alaykum, {{ spoken }}'
 - id: rice_cooker_timeout
   alias: Kitchen · rice cooker off after 60 min
   triggers:
@@ -306,6 +386,10 @@
     target:
       entity_id: switch.rice_cooker
   - action: notify.mobile_app_azizs_iphone
+    data:
+      title: Rice cooker
+      message: Switched off after 60 minutes.
+  - action: notify.mobile_app_iphone_wifey
     data:
       title: Rice cooker
       message: Switched off after 60 minutes.
@@ -370,6 +454,7 @@
         - 1) // 3] }}'
       kind: '{{ kind }}'
       ev: '{{ ev }}'
+      room: living_room
       scene: scene.movie
 - id: remote_studio_wheel
   alias: Remote · Studio scroll wheel
@@ -403,6 +488,7 @@
         - 1) // 3] }}'
       kind: '{{ kind }}'
       ev: '{{ ev }}'
+      room: studio
       scene: scene.focus
 - id: remote_bedroom_wheel
   alias: Remote · Bedroom scroll wheel
@@ -436,6 +522,7 @@
         - 1) // 3] }}'
       kind: '{{ kind }}'
       ev: '{{ ev }}'
+      room: bedroom
       scene: scene.night
 - id: remote_bedroom_dual_button
   alias: Remote · Bedroom dual button
@@ -477,36 +564,74 @@
           entity_id: scene.night
 - id: fresh_air_nudge
   alias: Air · fresh-air nudge when CO2 is high
-  description: Announces on the living-room Echo when CO2 stays above 1000 ppm for
-    10 minutes with the balcony door closed (08:00-22:00, someone home, at most once
-    an hour).
+  description: When CO2 stays above 1000 ppm for 10 minutes (or is already above at
+    08:00) and the vacation mode is off, announces on the Echo in the occupied room
+    and pushes to whoever is home, while the balcony door is closed, someone is home
+    and it is 08:00-22:00. Repeats every hour until CO2 is back at 1000 ppm or below
+    (at most 16 times).
   triggers:
   - trigger: numeric_state
     entity_id: sensor.air_quality_co2
     above: 1000
     for: 00:10:00
+  - trigger: time
+    at: 08:00:00
   conditions:
   - condition: state
     entity_id: input_boolean.vacation_mode
     state: 'off'
-  - condition: numeric_state
-    entity_id: zone.home
-    above: 0
-  - condition: time
-    after: 08:00:00
-    before: '22:00:00'
-  - condition: state
-    entity_id: binary_sensor.balcony_door
-    state: 'off'
+  - condition: template
+    value_template: '{{ states(''sensor.air_quality_co2'') | float(0) > 1000 }}'
   actions:
-  - action: notify.send_message
-    target:
-      entity_id: notify.echo_living_room_announce
-    data:
-      message: CO2 is at {{ states('sensor.air_quality_co2') | float(0) | round(0)
-        | int }} ppm - open the balcony door for five minutes.
-  - alias: Cooldown (mode single drops triggers meanwhile)
-    delay: 01:00:00
+  - repeat:
+      sequence:
+      - if:
+        - condition: numeric_state
+          entity_id: zone.home
+          above: 0
+        - condition: time
+          after: 08:00:00
+          before: '22:00:00'
+        - condition: state
+          entity_id: binary_sensor.balcony_door
+          state: 'off'
+        then:
+        - action: notify.send_message
+          target:
+            entity_id: '{% if is_state(''binary_sensor.studio_presence'',''on'') %}notify.echo_studio_announce
+              {% elif is_state(''binary_sensor.kitchen_motion'',''on'') or is_state(''binary_sensor.echo_kitchen_presence'',''on'')
+              %}notify.echo_kitchen_announce {% else %}notify.echo_living_room_announce{%
+              endif %}
+
+              '
+          data:
+            message: CO2 is at {{ states('sensor.air_quality_co2') | float(0) | round(0)
+              | int }} ppm - open the balcony door for five minutes.
+        - if:
+          - condition: state
+            entity_id: person.muhammad_aziz_ur_rehman
+            state: home
+          then:
+          - action: notify.mobile_app_azizs_iphone
+            data:
+              title: Fresh air
+              message: CO2 is at {{ states('sensor.air_quality_co2') | float(0) |
+                round(0) | int }} ppm - open the balcony door for five minutes.
+        - if:
+          - condition: state
+            entity_id: person.wifey
+            state: home
+          then:
+          - action: notify.mobile_app_iphone_wifey
+            data:
+              title: Fresh air
+              message: CO2 is at {{ states('sensor.air_quality_co2') | float(0) |
+                round(0) | int }} ppm - open the balcony door for five minutes.
+      - wait_template: '{{ states(''sensor.air_quality_co2'') | float(0) <= 1000 }}'
+        timeout: 01:00:00
+        continue_on_timeout: true
+      until: '{{ states(''sensor.air_quality_co2'') | float(0) <= 1000 or repeat.index
+        >= 16 }}'
   mode: single
 - id: goodnight_bottom_button
   alias: Bedroom · goodnight (hold bottom button)
@@ -600,9 +725,11 @@
   mode: single
 - id: robot_clean_when_away
   alias: Robot · clean when everyone is out
-  description: Starts a whole-flat clean when nobody has been home for 10 minutes
-    (09:00-19:00), the robot is docked with at least 50 % battery and has not cleaned
-    today.
+  description: Monday to Saturday, starts a whole-flat clean when nobody has been
+    home for 10 minutes (09:00-19:00), the robot is docked with at least 50 % battery
+    and has not finished a full clean today (input_datetime.robot_last_full_clean,
+    set by Robot · mark full clean). A clean cut short by someone coming home does
+    not count, so it runs again the next time everyone is out.
   triggers:
   - trigger: numeric_state
     entity_id: zone.home
@@ -615,16 +742,23 @@
   - condition: time
     after: 09:00:00
     before: '19:00:00'
+    weekday:
+    - mon
+    - tue
+    - wed
+    - thu
+    - fri
+    - sat
   - condition: state
     entity_id: vacuum.roborock_q5_pro
     state: docked
   - condition: numeric_state
     entity_id: sensor.studio_roborock_battery
     above: 49
-  - alias: Has not cleaned today
+  - alias: Has not finished a full clean today
     condition: template
-    value_template: '{% set t = as_datetime(states(''sensor.studio_roborock_last_clean_begin''),
-      none) %}{{ t is none or as_local(t).date() != now().date() }}'
+    value_template: '{% set t = as_datetime(states(''input_datetime.robot_last_full_clean''),
+      none) %}{{ t is none or t.date() != now().date() }}'
   actions:
   - action: vacuum.start
     target:
@@ -633,7 +767,8 @@
 - id: robot_dock_on_arrival
   alias: Robot · return to dock when someone comes home
   description: Sends the robot back to its dock if it is cleaning when someone arrives
-    home.
+    home and flags the clean as recalled (it does not count as done); the next time
+    everyone is out the same day it cleans again.
   triggers:
   - trigger: numeric_state
     entity_id: zone.home
@@ -643,6 +778,9 @@
     entity_id: vacuum.roborock_q5_pro
     state: cleaning
   actions:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.robot_recalled
   - action: vacuum.return_to_base
     target:
       entity_id: vacuum.roborock_q5_pro
@@ -731,24 +869,21 @@
 - id: washer_wet_laundry_reminder
   alias: Washer · wet laundry reminder
   description: Reminds both phones (and the Echo in the occupied room) if the washer
-    has been finished for 30 minutes and its door was not opened.
+    is still finished and switched on 30 minutes later.
   triggers:
   - trigger: state
     entity_id: sensor.washer_operation_state
     to: finished
   conditions: []
   actions:
-  - alias: Wait 30 min; abort if the door opens or a new program starts
+  - alias: Wait 30 min; abort if the washer is switched off or a new program starts
     wait_for_trigger:
     - trigger: state
-      entity_id: sensor.kitchen_washing_machine_door
-      to: open
+      entity_id: switch.kitchen_washing_machine_power
+      to: 'off'
     - trigger: state
       entity_id: sensor.washer_operation_state
-      to:
-      - run
-      - ready
-      - delayedstart
+      from: finished
     timeout: 00:30:00
     continue_on_timeout: true
   - condition: template
@@ -782,4 +917,48 @@
       data:
         message: Laundry has been sitting in the washing machine for 30 minutes -
           hang it up before it gets musty.
+  mode: single
+- id: morning_weather_briefing
+  alias: Kitchen · morning weather briefing
+  description: First kitchen motion after the wake-up light starts (wake time -20 min,
+    weekday or weekend time) and within 3 h, once a day; the Kitchen Echo says today's
+    weather and warns about rain or snow.
+  triggers:
+  - trigger: state
+    entity_id: binary_sensor.kitchen_motion
+    to: 'on'
+  conditions:
+  - condition: state
+    entity_id: input_boolean.vacation_mode
+    state: 'off'
+  - condition: state
+    entity_id: input_boolean.wake_up_enabled
+    state: 'on'
+  - condition: numeric_state
+    entity_id: zone.home
+    above: 0
+  - condition: template
+    value_template: "{% set t = states('input_datetime.wake_time_weekend' if now().weekday() >= 5 else 'input_datetime.wake_time') %}{% set s = today_at(t) - timedelta(minutes=20) %}{% set lt = this.attributes.last_triggered %}{{ s <= now() <= s + timedelta(hours=3) and (lt is none or as_local(lt).date() != now().date()) }}"
+  actions:
+  - action: weather.get_forecasts
+    data:
+      type: daily
+    target:
+      entity_id: weather.forecast_home
+    response_variable: fc
+  - variables:
+      d: "{{ fc['weather.forecast_home'].forecast[0] }}"
+      msg: >-
+        {% set names = {'sunny': 'sunny', 'clear-night': 'clear', 'partlycloudy': 'partly cloudy', 'cloudy': 'cloudy', 'fog': 'foggy', 'rainy': 'rainy', 'pouring': 'very rainy', 'lightning': 'stormy', 'lightning-rainy': 'stormy', 'snowy': 'snowy', 'snowy-rainy': 'sleety', 'windy': 'windy', 'windy-variant': 'windy', 'hail': 'hail'} %}
+        {% set c = d.condition %}
+        {% set words = names.get(c, c | replace('-', ' ')) %}
+        Good morning. Today will be {{ words }}, with a high of {{ d.temperature | round }}{% if d.templow is defined and d.templow is not none %} and a low of {{ d.templow | round }}{% endif %} degrees.
+        {%- if c in ['snowy', 'snowy-rainy'] %} Snow is expected, dress warm and take care outside.
+        {%- elif c in ['rainy', 'pouring', 'lightning-rainy', 'hail'] or d.precipitation | default(0) | float(0) > 0.5 or d.precipitation_probability | default(0) | float(0) >= 50 %} Rain is expected, take an umbrella.
+        {%- endif %}
+  - action: notify.send_message
+    target:
+      entity_id: notify.echo_kitchen_announce
+    data:
+      message: '{{ msg }}'
   mode: single

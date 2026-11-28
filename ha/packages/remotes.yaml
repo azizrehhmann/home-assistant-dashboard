@@ -1,7 +1,24 @@
 # IKEA BILRESA remotes (Matter event entities).
 # Scroll wheel: 3 channels x 3 buttons. Per channel: button A/B = turn steps (multi_press_N = N clicks),
-# button C = press (multi_press_1 single, multi_press_2 double).
-# Channel 1 = whole room, 2 = ceiling, 3 = lamp. Double-press = the room's scene.
+# button C = press. Channel 1 = whole room, 2 = ceiling, 3 = lamp.
+#   press (single)                      = on / off
+#   turn                                = dim
+#   double-tap, then turn within 10 s   = warmth (150 K per click, 2202-4000 K)
+#   long-press                          = the room's scene
+input_datetime:
+  wheel_warmth_living_room:
+    name: Living room wheel warmth mode until
+    has_date: true
+    has_time: true
+  wheel_warmth_studio:
+    name: Studio wheel warmth mode until
+    has_date: true
+    has_time: true
+  wheel_warmth_bedroom:
+    name: Bedroom wheel warmth mode until
+    has_date: true
+    has_time: true
+
 script:
   remote_light:
     alias: Remote · light action
@@ -9,11 +26,15 @@ script:
     max: 30
     fields:
       target: {description: light entity}
+      room: {description: "living_room | studio | bedroom (keys the warmth-mode helper)"}
       kind: {description: "up | down | press"}
       ev: {description: event_type from the remote}
-      scene: {description: scene for double-press}
+      scene: {description: scene for long-press}
     variables:
       dimmable: "{{ expand(target) | rejectattr('attributes.supported_color_modes', 'eq', ['onoff']) | map(attribute='entity_id') | list }}"
+      warm_until: "input_datetime.wheel_warmth_{{ room | default('') }}"
+      warm_mode: "{{ room is defined and room != '' and as_timestamp(states('input_datetime.wheel_warmth_' ~ room), 0) > as_timestamp(now()) }}"
+      ct_lights: "{{ expand(target) | selectattr('attributes.supported_color_modes', 'defined') | selectattr('attributes.supported_color_modes', 'contains', 'color_temp') | map(attribute='entity_id') | list }}"
     sequence:
       - choose:
           # press: off -> on at the time-of-day values (sensor.light_mode), on -> off
@@ -32,11 +53,48 @@ script:
                 data:
                   brightness_pct: "{{ state_attr('sensor.light_mode', 'brightness_pct') }}"
                   color_temp_kelvin: "{{ state_attr('sensor.light_mode', 'kelvin') }}"
+          # double-tap: open a 10 s warmth window (turning then changes colour temperature instead of brightness)
           - conditions: "{{ kind == 'press' and ev == 'multi_press_2' }}"
+            sequence:
+              - action: input_datetime.set_datetime
+                target: {entity_id: "{{ warm_until }}"}
+                data:
+                  datetime: "{{ (now() + timedelta(seconds=10)).strftime('%Y-%m-%d %H:%M:%S') }}"
+              # off -> switch on first so there is something to adjust
+              - if:
+                  - condition: template
+                    value_template: "{{ not is_state(target, 'on') and ct_lights | count > 0 }}"
+                then:
+                  - action: light.turn_on
+                    target: {entity_id: "{{ ct_lights }}"}
+                    data:
+                      brightness_pct: "{{ state_attr('sensor.light_mode', 'brightness_pct') }}"
+                      color_temp_kelvin: "{{ state_attr('sensor.light_mode', 'kelvin') }}"
+          # long-press = room scene (long_release matches nothing)
+          - conditions: "{{ kind == 'press' and ev == 'long_press' }}"
             sequence:
               - action: scene.turn_on
                 target: {entity_id: "{{ scene }}"}
-          # turning: dim only dimmable lights (the living room lamp is an on/off plug inside the room group)
+          # turning inside the warmth window: 150 K per click, up = cooler, down = warmer
+          - conditions: "{{ kind in ['up','down'] and ev.startswith('multi_press_') and warm_mode and ct_lights | count > 0 }}"
+            sequence:
+              - variables:
+                  on_ct: "{{ expand(ct_lights) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list }}"
+                  tgt: "{{ on_ct if on_ct | count > 0 else ct_lights }}"
+                  lo: "{{ [expand(tgt) | map(attribute='attributes.min_color_temp_kelvin') | max, 2202] | max }}"
+                  hi: "{{ [expand(tgt) | map(attribute='attributes.max_color_temp_kelvin') | min, 4000] | min }}"
+                  base: "{{ (expand(on_ct) | map(attribute='attributes.color_temp_kelvin') | select('number') | list + [state_attr('sensor.light_mode', 'kelvin') | int(3000)]) | first | int }}"
+                  new_k: "{{ [[base + (ev.split('_')[-1] | int) * 150 * (1 if kind == 'up' else -1), lo] | max, hi] | min }}"
+              - action: light.turn_on
+                target: {entity_id: "{{ tgt }}"}
+                data:
+                  color_temp_kelvin: "{{ new_k }}"
+                  transition: 0.4
+              - action: input_datetime.set_datetime
+                target: {entity_id: "{{ warm_until }}"}
+                data:
+                  datetime: "{{ (now() + timedelta(seconds=10)).strftime('%Y-%m-%d %H:%M:%S') }}"
+          # turning otherwise: dim only dimmable lights (the living room lamp is an on/off plug inside the room group)
           - conditions: "{{ kind in ['up','down'] and ev.startswith('multi_press_') and dimmable | count > 0 }}"
             sequence:
               - action: light.turn_on

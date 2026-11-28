@@ -1,5 +1,5 @@
 # Vacation mode automations. Helpers live in vacation.yaml.
-# Phone notifications go to notify.mobile_app_azizs_iphone.
+# Phone notifications go to both phones: notify.mobile_app_azizs_iphone and notify.mobile_app_iphone_wifey.
 automation:
   - id: vacation_start_scheduled
     alias: Vacation · start at the scheduled time
@@ -39,6 +39,12 @@ automation:
           message: >-
             Everything is off and heating is on frost protection.
             {% if is_state('input_boolean.vacation_open_ended','on') %}Open-ended.{% else %}Ends {{ as_timestamp(states('input_datetime.vacation_end')) | timestamp_custom('%a %d %b, %H:%M') }}.{% endif %}
+      - action: notify.mobile_app_iphone_wifey
+        data:
+          title: Vacation mode on
+          message: >-
+            Everything is off and heating is on frost protection.
+            {% if is_state('input_boolean.vacation_open_ended','on') %}Open-ended.{% else %}Ends {{ as_timestamp(states('input_datetime.vacation_end')) | timestamp_custom('%a %d %b, %H:%M') }}.{% endif %}
 
   - id: vacation_keep_off
     alias: Vacation · keep lights and plugs off
@@ -62,12 +68,15 @@ automation:
       - condition: state
         entity_id: input_boolean.vacation_mode
         state: "on"
-      # presence simulation may use these two lamps in the evening
+      # the presence simulation routine may use these lights in the evening (members of the groups included)
       - condition: template
         value_template: >-
           {{ not (is_state('input_boolean.vacation_presence_simulation','on')
-                  and trigger.entity_id in ['light.living_room_lamp','light.bedside_lamp']
-                  and 17 <= now().hour < 24) }}
+                  and trigger.entity_id in ['light.living_room_lamp','light.living_room_ceiling',
+                                            'light.living_room_light_1','light.living_room_light_2',
+                                            'light.kitchen_ceiling','light.bedside_lamps',
+                                            'light.bedside_lamp','light.bedside_lamp_2']
+                  and now().hour >= 16) }}
     actions:
       - action: homeassistant.turn_off
         target: {entity_id: "{{ trigger.entity_id }}"}
@@ -124,13 +133,30 @@ automation:
           data:
             push:
               interruption-level: time-sensitive
+      - action: notify.mobile_app_iphone_wifey
+        data:
+          title: "⚠️ {{ trigger.to_state.name }}"
+          message: "Triggered at {{ now().strftime('%H:%M') }} while you're on vacation."
+          data:
+            push:
+              interruption-level: time-sensitive
 
   - id: vacation_presence_simulation
     alias: Vacation · presence simulation
-    mode: single
+    description: Evening routine that looks lived in. Dusk, living-room lamp and ceiling;
+      19:30, kitchen ceiling for 15-30 minutes; 22:30, living room off and bedside
+      lamps on. Every step starts 0-20 minutes late.
+    mode: parallel
     triggers:
-      - trigger: time_pattern
-        minutes: "/20"
+      - trigger: sun
+        event: sunset
+        id: dusk
+      - trigger: time
+        at: "19:30:00"
+        id: kitchen
+      - trigger: time
+        at: "22:30:00"
+        id: bed
     conditions:
       - condition: state
         entity_id: input_boolean.vacation_mode
@@ -138,21 +164,39 @@ automation:
       - condition: state
         entity_id: input_boolean.vacation_presence_simulation
         state: "on"
-      - condition: time
-        after: "18:00:00"
-        before: "23:00:00"
-      # only once it's dark
-      - condition: state
-        entity_id: sun.sun
-        state: below_horizon
     actions:
       - delay:
-          minutes: "{{ range(0, 10) | random }}"
-      - action: light.toggle
-        target:
-          entity_id: "{{ ['light.living_room_lamp','light.bedside_lamp'] | random }}"
-        data:
-          brightness_pct: 60
+          minutes: "{{ range(0, 21) | random }}"
+      - choose:
+          - conditions:
+              - condition: trigger
+                id: dusk
+            sequence:
+              - action: light.turn_on
+                target: {entity_id: light.living_room_lamp}
+              - action: light.turn_on
+                target: {entity_id: light.living_room_ceiling}
+                data: {brightness_pct: 60, color_temp_kelvin: 2700}
+          - conditions:
+              - condition: trigger
+                id: kitchen
+            sequence:
+              - action: light.turn_on
+                target: {entity_id: light.kitchen_ceiling}
+                data: {brightness_pct: 70, color_temp_kelvin: 2700}
+              - delay:
+                  minutes: "{{ range(15, 31) | random }}"
+              - action: light.turn_off
+                target: {entity_id: light.kitchen_ceiling}
+          - conditions:
+              - condition: trigger
+                id: bed
+            sequence:
+              - action: light.turn_off
+                target: {entity_id: [light.living_room_lamp, light.living_room_ceiling]}
+              - action: light.turn_on
+                target: {entity_id: light.bedside_lamps}
+                data: {brightness_pct: 40, color_temp_kelvin: 2200}
 
   - id: vacation_presence_simulation_end
     alias: Vacation · simulation lights off for the night
@@ -164,8 +208,10 @@ automation:
         entity_id: input_boolean.vacation_mode
         state: "on"
     actions:
+      - delay:
+          minutes: "{{ range(0, 21) | random }}"
       - action: light.turn_off
-        target: {entity_id: [light.living_room_lamp, light.bedside_lamp]}
+        target: {entity_id: [light.living_room_lamp, light.living_room_ceiling, light.kitchen_ceiling, light.bedside_lamps]}
 
   - id: vacation_humidity_alert
     alias: Vacation · humidity alert
@@ -184,6 +230,10 @@ automation:
         state: "on"
     actions:
       - action: notify.mobile_app_azizs_iphone
+        data:
+          title: "💧 High humidity: {{ trigger.to_state.name }}"
+          message: "{{ trigger.to_state.state }}% for 2 hours. Risk of mould; ask a neighbour to air the flat."
+      - action: notify.mobile_app_iphone_wifey
         data:
           title: "💧 High humidity: {{ trigger.to_state.name }}"
           message: "{{ trigger.to_state.state }}% for 2 hours. Risk of mould; ask a neighbour to air the flat."
@@ -207,6 +257,9 @@ automation:
         target: {entity_id: [climate.living_room, climate.studio, climate.bedroom, climate.bathroom]}
         data: {hvac_mode: auto}
       - action: notify.mobile_app_azizs_iphone
+        data:
+          message: "🔥 Heating back on for your return."
+      - action: notify.mobile_app_iphone_wifey
         data:
           message: "🔥 Heating back on for your return."
 
@@ -236,6 +289,10 @@ automation:
         target: {entity_id: [climate.living_room, climate.studio, climate.bedroom, climate.bathroom]}
         data: {hvac_mode: auto}
       - action: notify.mobile_app_azizs_iphone
+        data:
+          title: Welcome back
+          message: Vacation mode is off and your automations are running again.
+      - action: notify.mobile_app_iphone_wifey
         data:
           title: Welcome back
           message: Vacation mode is off and your automations are running again.

@@ -7,6 +7,16 @@ input_boolean:
   robot_room_hallway: {name: Robot · Hallway, icon: mdi:door}
   robot_room_bathroom: {name: Robot · Bathroom, icon: mdi:shower}
 
+  # set by robot_dock_on_arrival, cleared when the next clean starts
+  robot_recalled: {name: Robot · clean was recalled, icon: mdi:robot-vacuum-alert}
+
+input_datetime:
+  robot_last_full_clean:
+    name: Robot · last full clean
+    has_date: true
+    has_time: true
+    icon: mdi:robot-vacuum
+
 input_select:
   robot_suction:
     name: Robot · suction
@@ -58,3 +68,46 @@ script:
           params:
             - segments: "{{ segments }}"
               repeat: "{{ states('input_number.robot_passes') | int }}"
+
+# A completed whole-flat clean ends with cleaning_progress 95-99 % after 42+ min (history 2026-11-23..26);
+# aborted starts end at 0 % within a minute. Sensors still hold the finished run's values when
+# the vacuum leaves "cleaning" (checked on all genuine runs), so progress >= 90 is read at that moment.
+automation:
+  - id: robot_mark_full_clean
+    alias: Robot · mark full clean
+    description: Stamps input_datetime.robot_last_full_clean when a clean ends with
+      progress of at least 90 % after at least 20 minutes and was not recalled by
+      someone coming home. Clears the recalled flag when a clean starts.
+    mode: queued
+    triggers:
+      - trigger: state
+        entity_id: vacuum.roborock_q5_pro
+        to: cleaning
+        id: started
+      - trigger: state
+        entity_id: vacuum.roborock_q5_pro
+        from: cleaning
+        to: [returning, docked]
+        id: ended
+    actions:
+      - choose:
+          - conditions:
+              - condition: trigger
+                id: started
+            sequence:
+              - action: input_boolean.turn_off
+                target: {entity_id: input_boolean.robot_recalled}
+          - conditions:
+              - condition: trigger
+                id: ended
+              - condition: state
+                entity_id: input_boolean.robot_recalled
+                state: "off"
+              - condition: template
+                value_template: >-
+                  {{ states('sensor.studio_roborock_cleaning_progress') | float(0) >= 90
+                     and (now() - trigger.from_state.last_changed).total_seconds() >= 1200 }}
+            sequence:
+              - action: input_datetime.set_datetime
+                target: {entity_id: input_datetime.robot_last_full_clean}
+                data: {timestamp: "{{ now().timestamp() }}"}

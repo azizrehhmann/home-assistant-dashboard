@@ -1,6 +1,6 @@
 # Time-of-day lighting: one table, used by every light.
 #   morning  05:00 → 1 h after sunrise        70 %  3000 K
-#   day      1 h after sunrise → 1 h before sunset   80 %  4000 K
+#   day      1 h after sunrise → 1 h before sunset   80 %  3500 K
 #   evening  1 h before sunset → 22:00        55 %  2700 K
 #   night    22:00 → 05:00                    25 %  2202 K (warmest the IKEA bulbs go)
 # Scenes, the wake-up light and the bedroom night button keep their own values.
@@ -32,7 +32,7 @@ template:
         state: "{{ mode }}"
         attributes:
           brightness_pct: "{{ {'morning': 70, 'day': 80, 'evening': 55, 'night': 25}[mode] }}"
-          kelvin: "{{ {'morning': 3000, 'day': 4000, 'evening': 2700, 'night': 2202}[mode] }}"
+          kelvin: "{{ {'morning': 3000, 'day': 3500, 'evening': 2700, 'night': 2202}[mode] }}"
 
 automation:
   - id: lights_time_of_day_on_turn_on

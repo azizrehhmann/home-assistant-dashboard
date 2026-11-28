@@ -5,8 +5,12 @@ input_datetime:
     name: Wake-up light time
     has_date: false
     has_time: true   # no `initial:`, so the time you set survives restarts
+  wake_time_weekend:
+    name: Weekend wake-up time
+    has_date: false
+    has_time: true
 
 input_boolean:
   wake_up_enabled:
-    name: Wake-up light (weekdays)
+    name: Wake-up light
     icon: mdi:weather-sunset-up
