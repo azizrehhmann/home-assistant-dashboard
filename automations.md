@@ -132,6 +132,16 @@ Helpers: `input_boolean.vacation_mode`, `vacation_open_ended`, `vacation_securit
 
 ---
 
+## 9. Prayer (`ha/packages/azan.yaml`)
+
+Helper: `input_boolean.azan_enabled` ("Azan").
+
+| Name (id) | Trigger | Conditions | What happens |
+|---|---|---|---|
+| **Prayer · azan on the living-room Echo** (`azan_prayer_times`) | Time of the Dhuhr, Asr, Maghrib or Isha sensor (`sensor.islamic_prayer_times_<prayer>_prayer`). No Fajr. | Azan on; vacation mode off; `zone.home` above 0 (someone home); Isha skipped after 22:30 | `alexa_devices.send_text_command` "play my playlist Azan on Spotify" on the living-room Echo Dot. Waits up to 30 s for `media_player.echo_living_room` to play and notes the track title, waits the track's `media_duration` + 5 s (300 s if unknown, max 420 s), then pauses the Echo if it is still playing that same title, so Spotify autoplay can't carry on. Mode `single`, extra triggers are dropped silently. |
+
+---
+
 ## Known issues
 - **Balcony lights don't exist yet.** `balcony_lights_on`, `balcony_lights_off`, `vacation_keep_off`, and the Night scene reference `light.balcony_lights`, which isn't created until the LEDVANCE plug is paired. Until then those steps have no effect on a real light.
 - **The washer door sensor is unavailable.** Nothing relies on it: the wet-laundry reminder is cancelled by washer power-off (`switch.kitchen_washing_machine_power`) or a state change instead.
@@ -140,6 +150,7 @@ Helpers: `input_boolean.vacation_mode`, `vacation_open_ended`, `vacation_securit
 - **Echo "announce" is silent (2026-11-28).** `notify.echo_*_announce` calls succeed but nothing plays: the Echo Announcements setting is unavailable to HA (Amazon communication-settings refreshes fail). Every automation and the dashboard use `notify.echo_*_speak` instead, which works and accepts SSML.
 
 ## Implementation notes
+- Prayer times: core **Islamic Prayer Times** integration (`islamic_prayer_times`), location = the home (Hanau), calculation method Muslim World League, school Hanafi (later Asr), other options default. Sensors are timestamps (`sensor.islamic_prayer_times_fajr_prayer`, `sunrise_time`, `dhuhr_prayer`, `asr_prayer`, `maghrib_prayer`, `isha_prayer`, `midnight_time`) and update daily; the automation uses them directly as time-trigger `at:` values.
 - `alexa_devices.send_text_command` takes `device_id` + `text_command`. TV on/off goes through it because the TV reports no state through Alexa.
 - tado: HVAC mode `off` = frost protection; the cloud entity mode `auto` = back to the tado schedule. Timed heating uses `tado_x.set_climate_timer`.
 - Retired from the original catalogue: tado slow refresh (tado X replaced it), movie mode on TV-on (the TV reports no state), the PM2.5 air-quality push (not chosen), and the "leaving home" robot clean inside the old leave automation (now the separate robot automations).

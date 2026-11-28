@@ -1,0 +1,48 @@
+# Azan at prayer times on the living-room Echo (Spotify playlist "Azan").
+# Times come from the core Islamic Prayer Times integration (MWL, Hanafi, Hanau home location).
+input_boolean:
+  azan_enabled:
+    name: Azan
+    icon: mdi:mosque
+
+automation:
+  - id: azan_prayer_times
+    alias: Prayer · azan on the living-room Echo
+    description: >-
+      Plays the Spotify playlist "Azan" on the living-room Echo at Dhuhr, Asr, Maghrib and Isha
+      (no Fajr). Only when the Azan switch is on, vacation mode is off and someone is home.
+      Isha is skipped after 22:30. After the track ends the Echo is paused so Spotify autoplay
+      cannot carry on.
+    mode: single
+    max_exceeded: silent
+    triggers:
+      - {trigger: time, at: sensor.islamic_prayer_times_dhuhr_prayer, id: dhuhr}
+      - {trigger: time, at: sensor.islamic_prayer_times_asr_prayer, id: asr}
+      - {trigger: time, at: sensor.islamic_prayer_times_maghrib_prayer, id: maghrib}
+      - {trigger: time, at: sensor.islamic_prayer_times_isha_prayer, id: isha}
+    conditions:
+      - {condition: state, entity_id: input_boolean.azan_enabled, state: "on"}
+      - {condition: state, entity_id: input_boolean.vacation_mode, state: "off"}
+      - {condition: numeric_state, entity_id: zone.home, above: 0}
+      - condition: template
+        value_template: "{{ not (trigger.id == 'isha' and now().strftime('%H:%M') > '22:30') }}"
+    actions:
+      - action: alexa_devices.send_text_command
+        data:
+          device_id: 5c1cc20b821f547aa2b140387426c229
+          text_command: play my playlist Azan on Spotify
+      - wait_template: "{{ is_state('media_player.echo_living_room', 'playing') }}"
+        timeout: 30
+        continue_on_timeout: true
+      - variables:
+          azan_title: "{{ state_attr('media_player.echo_living_room', 'media_title') }}"
+      - delay:
+          seconds: >-
+            {% set d = state_attr('media_player.echo_living_room', 'media_duration') | int(0) %}
+            {{ [(d + 5) if d > 0 else 300, 420] | min }}
+      - condition: template
+        value_template: >-
+          {{ is_state('media_player.echo_living_room', 'playing')
+             and state_attr('media_player.echo_living_room', 'media_title') == azan_title }}
+      - action: media_player.media_pause
+        target: {entity_id: media_player.echo_living_room}
