@@ -317,8 +317,10 @@
   description: 'When Aziz or Hatice arrives, wait for the main door to open (10 min
     at most). If the home was empty and it is dark: living-room lamp, hallway light
     and bedside lamps on at the time-of-day values. Between 07:00 and 23:00 the kitchen
-    Echo greets them by name.'
-  mode: queued
+    Echo greets them by name; if both arrive together (within 2 min) they get one
+    joint greeting.'
+  mode: single
+  max_exceeded: silent
   triggers:
   - trigger: state
     entity_id: person.muhammad_aziz_ur_rehman
@@ -336,11 +338,10 @@
     state: 'off'
   actions:
   - variables:
-      name: "{{ 'Aziz' if trigger.id == 'aziz' else 'Hatice' }}"
+      t0: "{{ now().isoformat() }}"
+      tid: "{{ trigger.id }}"
       other: "{{ 'person.wifey' if trigger.id == 'aziz' else 'person.muhammad_aziz_ur_rehman' }}"
       was_empty: "{{ not is_state(other, 'home') }}"
-      spoken: >-
-        {{ 'As-salaamu alaykum, Aziz.' if trigger.id == 'aziz' else '<speak>As-salaamu alaykum, <lang xml:lang="tr-TR">Hatice</lang>.</speak>' }}
   - wait_for_trigger:
     - trigger: state
       entity_id: binary_sensor.main_door
@@ -365,6 +366,13 @@
       data:
         brightness_pct: '{{ state_attr(''sensor.light_mode'', ''brightness_pct'') }}'
         color_temp_kelvin: '{{ state_attr(''sensor.light_mode'', ''kelvin'') }}'
+  - variables:
+      spoken: >-
+        {% set t = as_datetime(t0) - timedelta(minutes=2) %}
+        {% set a = tid == 'aziz' or (is_state('person.muhammad_aziz_ur_rehman', 'home') and states.person.muhammad_aziz_ur_rehman.last_changed >= t) %}
+        {% set h = tid == 'wifey' or (is_state('person.wifey', 'home') and states.person.wifey.last_changed >= t) %}
+        {% set names = (['Aziz'] if a else []) + (['<lang xml:lang="tr-TR">Hatice</lang>'] if h else []) %}
+        <speak>As-salaamu alaykum, {{ names | join(' and ') }}.</speak>
   - if:
     - condition: time
       after: '07:00:00'
